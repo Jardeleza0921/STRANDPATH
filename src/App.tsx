@@ -23,7 +23,7 @@ import { Pathways } from './pages/app/Pathways';
 export function App() {
   return (
     <AssessmentProvider>
-      <BrowserRouter>
+      <BrowserRouter basename="/STRANDPATH">
         <Routes>
           <Route element={<SiteLayout />}>
           <Route path="/" element={<Cover />} />
@@ -51,7 +51,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      <BrowserRouter basename="/STRANDPATH">
     </AssessmentProvider>);
 
 }
