@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Logo } from '../ui/Logo';
 
 const links = [
+  { to: '/landing', label: 'Home' },
   { to: '/how-it-works', label: 'How it works' },
   { to: '/strands', label: 'Explore strands' },
   { to: '/about', label: 'About' },
