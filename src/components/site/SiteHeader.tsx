@@ -17,7 +17,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur-sm">
       <div className="mx-auto flex h-[72px] max-w-content items-center justify-between gap-6 px-6">
         <Link
-          to="/"
+          to="/landing"
           className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-canvas"
           aria-label="StrandPath home">
           
