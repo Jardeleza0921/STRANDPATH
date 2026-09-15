@@ -24,17 +24,19 @@ export function App() {
   return (
     <AssessmentProvider>
       <BrowserRouter basename="/STRANDPATH">
-      <Route element={<SiteLayout />}>
-      <Route path="/" element={<Cover />} />
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/how-it-works" element={<HowItWorks />} />
-      <Route path="/strands" element={<ExploreStrands />} />
-      <Route path="/strands/:slug" element={<StrandDetailPage />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/mobile" element={<MobileApp />} />
-      <Route path="/mobile/all" element={<MobileGallery />} />
-      <Route path="/design-system" element={<DesignSystem />} />
-    </Route>
+        <Routes>
+          <Route element={<SiteLayout />}>
+            <Route path="/" element={<Cover />} />
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/strands" element={<ExploreStrands />} />
+            <Route path="/strands/:slug" element={<StrandDetailPage />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/mobile" element={<MobileApp />} />
+            <Route path="/mobile/all" element={<MobileGallery />} />
+            <Route path="/cover" element={<Cover />} />
+            <Route path="/design-system" element={<DesignSystem />} />
+          </Route>
 
           <Route path="/app" element={<AppShell />}>
             <Route index element={<Dashboard />} />
@@ -46,14 +48,9 @@ export function App() {
             <Route path="pathways" element={<Pathways />} />
           </Route>
 
-          <Route path="/mobile" element={<MobileApp />} />
-          <Route path="/mobile/all" element={<MobileGallery />} />
-          <Route path="/cover" element={<Cover />} />
-          <Route path="/design-system" element={<DesignSystem />} />
-
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      <BrowserRouter basename="/STRANDPATH">
-    </AssessmentProvider>);
-
+      </BrowserRouter>
+    </AssessmentProvider>
+  );
 }
