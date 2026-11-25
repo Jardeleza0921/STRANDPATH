@@ -7,5 +7,6 @@ dist
 !.env.example
 server/data
 artifacts
+netlify
 *.log
 .DS_Store

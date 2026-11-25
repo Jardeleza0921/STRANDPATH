@@ -257,6 +257,19 @@ For plain HTTP local use, `NODE_ENV=development` is the compose default so cooki
 
 One-click Blueprint link: `https://render.com/deploy?repo=https://github.com/Jardeleza0921/STRANDPATH`
 
+### Netlify frontend + Render API (same-origin)
+
+Netlify cannot run the SQLite-backed server itself: Functions are ephemeral and have no persistent filesystem. The working split is Netlify for the SPA and a small Edge Function that proxies `/api/*` to the Render service, so browser cookies stay first-party and no CORS is needed.
+
+1. Deploy the Render Blueprint first and note its URL, e.g. `https://strandpath.onrender.com`.
+2. In Netlify choose **Add new site → Import an existing project**, connect `Jardeleza0921/STRANDPATH`. [`netlify.toml`](netlify.toml) sets the build (`npm run build`) and publish directory (`dist`).
+3. Add the environment variable `API_ORIGIN=https://strandpath.onrender.com` (no trailing slash), then deploy.
+4. Set Render's `APP_BASE_URL` to the Netlify URL (e.g. `https://strandpath.netlify.app`) and redeploy the Render service so email links and Google redirects point at Netlify.
+5. In Google Cloud, register `https://<netlify-site>/api/auth/google/callback` as the redirect URI and set `GOOGLE_REDIRECT_URI` on Render to the same value.
+6. Verify `/api/health` through the Netlify domain, then sign in and run an assessment.
+
+The proxy is [`netlify/edge-functions/api.js`](netlify/edge-functions/api.js). It forwards methods, bodies, cookies and `Set-Cookie`, strips hop-by-hop headers, and returns 503 when `API_ORIGIN` is missing. Authentication, RBAC, rate limits and CSRF checks stay on the Node API; the Netlify site cannot bypass them. `APP_BASE_URL` must be the primary Netlify URL (not a deploy-preview URL) for email and OAuth.
+
 ### Railway
 
 Create a project from the GitHub repo; [`railway.json`](railway.json) selects the Dockerfile and health check. Add a volume mounted at `/data`, then set the same environment variables. Railway provides `PORT`, which the server reads.
