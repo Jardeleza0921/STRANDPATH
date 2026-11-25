@@ -1,0 +1,52 @@
+# Render Blueprint: Docker web service with a persistent disk for SQLite.
+# Persistent disks require a paid instance type. Create the service from this
+# blueprint, then enter the secret environment values in the Render dashboard.
+services:
+  - type: web
+    name: strandpath
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /data/strandpath.db
+      - key: APP_BASE_URL
+        sync: false
+      - key: INITIAL_ADMIN_EMAIL
+        value: jjardeleza@paterostechnologicalcollege.edu.ph
+      - key: INITIAL_ADMIN_NAME
+        value: J. Jardeleza
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+      - key: INITIAL_STUDENT_EMAIL
+        value: jaruiorijardeleza@gmail.com
+      - key: INITIAL_STUDENT_NAME
+        value: Klight
+      - key: INITIAL_STUDENT_PASSWORD
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: gpt-4o-mini
+    disk:
+      name: strandpath-data
+      mountPath: /data
+      sizeGB: 1

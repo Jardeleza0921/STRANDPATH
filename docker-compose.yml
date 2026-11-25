@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      DB_PATH: /data/strandpath.db
+      # Default to development for plain-HTTP local use. Set NODE_ENV=production
+      # in .env when running behind an HTTPS reverse proxy.
+      NODE_ENV: ${NODE_ENV:-development}
+    env_file:
+      - .env
+    volumes:
+      - strandpath-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  strandpath-data:

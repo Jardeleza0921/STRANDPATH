@@ -226,13 +226,59 @@ A manual smoke run previously covered the whole journey end to end against a fre
 
 ## 11. Deployment
 
-Single Node process, no server-side build:
+**GitHub Pages cannot host this application.** Pages serves static files only: no Node process, no SQLite writes, no sessions, no SMTP, no AI or admin APIs. Publishing the SPA there would load a shell whose `/api/*` calls all fail, so it is not a valid deployment target. Use a Node/container host with a persistent volume.
 
-1. `npm ci && npm run build && npm test`
-2. Configure `.env` (`NODE_ENV=production`, `APP_BASE_URL`, account passwords, SMTP, optional Google/AI).
-3. `npm run seed` once.
-4. Run under systemd/PM2/Docker behind a TLS reverse proxy that preserves `Host` and `X-Forwarded-Proto`.
-5. Persist and back up `DB_PATH`.
+Single Node process, no server-side build. Every option below uses the same image/config.
+
+### Docker (any host)
+
+```bash
+cp .env.example .env        # passwords, APP_BASE_URL, SMTP/Google/AI as needed
+npm run build               # optional; the image builds it too
+docker compose up -d --build
+```
+
+The container listens on 8787, stores SQLite at `/data`, runs as the unprivileged `node` user, and has a health check against `/api/health`. The named volume `strandpath-data` must be backed up.
+
+```bash
+docker compose logs -f
+docker compose exec app node -e "fetch('http://127.0.0.1:8787/api/health').then(r=>r.text()).then(console.log)"
+```
+
+For plain HTTP local use, `NODE_ENV=development` is the compose default so cookies are not `Secure`. Set `NODE_ENV=production` behind HTTPS. `APP_BASE_URL` must be the public HTTPS origin for email links and Google OAuth.
+
+### Render (Blueprint)
+
+1. Push this repository (already done).
+2. In Render choose **New → Blueprint**, connect `Jardeleza0921/STRANDPATH`; Render reads [`render.yaml`](render.yaml).
+3. Enter the secret values it prompts for: `INITIAL_ADMIN_PASSWORD`, `INITIAL_STUDENT_PASSWORD`, and optionally SMTP, Google and AI credentials. Set `APP_BASE_URL` to the Render URL after the first deploy.
+4. The blueprint mounts a 1 GB persistent disk at `/data` and sets `NODE_ENV=production`. Persistent disks require a paid instance type.
+5. First boot seeds the questionnaire, strands, activities and the two accounts. Check `/api/health`, then sign in and change the passwords.
+
+One-click Blueprint link: `https://render.com/deploy?repo=https://github.com/Jardeleza0921/STRANDPATH`
+
+### Railway
+
+Create a project from the GitHub repo; [`railway.json`](railway.json) selects the Dockerfile and health check. Add a volume mounted at `/data`, then set the same environment variables. Railway provides `PORT`, which the server reads.
+
+### VPS with a reverse proxy
+
+```bash
+git clone https://github.com/Jardeleza0921/STRANDPATH.git /srv/strandpath
+cd /srv/strandpath && cp .env.example .env
+# edit .env: NODE_ENV=production, APP_BASE_URL, passwords, SMTP
+docker compose up -d --build
+```
+
+Put Caddy/nginx in front for TLS, preserving `Host` and `X-Forwarded-Proto`. Caddy example:
+
+```
+strandpath.example.edu.ph {
+  reverse_proxy 127.0.0.1:8787
+}
+```
+
+Without Docker, use the systemd unit below after `npm ci && npm run build`, with `DB_PATH` on persistent storage:
 
 ```ini
 [Service]
@@ -243,7 +289,12 @@ Restart=always
 User=strandpath
 ```
 
-Freebuff/Cloudflare Sites cannot host this build (persistent Node process + filesystem database). Use a Node host or container platform.
+### Operational notes
+
+* Persist and back up the SQLite file and its `-wal` sidecar (`sqlite3 .backup` or stop the process first).
+* `npm run seed` runs at startup; it is idempotent and never resets existing passwords.
+* Set `APP_BASE_URL` to the final public origin before testing email or Google.
+* Freebuff/Cloudflare Sites also cannot run this build as-is (Node server + filesystem database); a Workers/D1 port would be a separate rewrite.
 
 ---
 
