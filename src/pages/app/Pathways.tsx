@@ -1,88 +1,116 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeftIcon } from 'lucide-react';
-import { PathwayMap } from '../../components/PathwayMap';
-import { getPathway, pathways } from '../../data/pathways';
+import { api, errorMessage } from '../../lib/api';
+import { Strand } from '../../types/api';
+import { Button } from '../../components/ui/Button';
+import { Card, Chip, ErrorState, LoadingBlock, PageHeader } from '../../components/ui/Primitives';
+
+interface CareerField {
+  strandSlug: string;
+  strandCode: string;
+  field: string;
+  careers: string[];
+}
 
 export function Pathways() {
   const [params, setParams] = useSearchParams();
-  const active = params.get('strand') ?? 'ict';
-  const pathway = getPathway(active);
+  const [strands, setStrands] = useState<Strand[] | null>(null);
+  const [fields, setFields] = useState<CareerField[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .get<{ fields: CareerField[]; strands: Strand[] }>('/careers')
+      .then((data) => {
+        setFields(data.fields);
+        setStrands(data.strands);
+        if (!params.get('strand') && data.strands[0]) {
+          setParams({ strand: data.strands[0].slug }, { replace: true });
+        }
+      })
+      .catch((err) => setError(errorMessage(err)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (error) return <div className="px-4 py-10 sm:px-8"><ErrorState message={error} /></div>;
+  if (!strands) return <LoadingBlock label="Loading pathways…" />;
+
+  const activeSlug = params.get('strand') ?? strands[0]?.slug ?? '';
+  const active = strands.find((s) => s.slug === activeSlug) ?? strands[0];
+  const activeFields = fields.filter((f) => f.strandSlug === active.slug);
 
   return (
-    <div className="mx-auto max-w-[1000px] px-8 py-10">
-      <Link
-        to="/app/results"
-        className="inline-flex items-center gap-1 text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
-        
-        <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
-        Back to results
-      </Link>
+    <div className="mx-auto max-w-[1000px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow="Future options"
+        title="Explore Your Future Options"
+        description="These are common next steps, not guarantees. Most college programmes accept students from several strands, and career paths often cross between fields."
+        actions={<Button to={`/app/strands/${active.slug}`} variant="secondary" size="sm">Strand details</Button>}
+      />
 
-      <header className="mt-5 border-b border-line pb-8">
-        <h1 className="text-[36px] font-semibold leading-tight tracking-[-0.03em] text-ink">Pathway exploration</h1>
-        <p className="mt-3 max-w-2xl text-[16px] leading-relaxed text-muted">
-          Follow a strand toward the college fields it commonly leads to, and the career areas connected to each
-          field. These are possible pathways, not guaranteed outcomes — students often move between them.
-        </p>
-      </header>
-
-      <div className="mt-8 flex flex-wrap gap-2" role="tablist" aria-label="Choose a strand pathway">
-        {pathways.map((p) => {
-          const selected = p.slug === pathway.slug;
+      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label="Choose a strand">
+        {strands.map((strand) => {
+          const selected = strand.slug === active.slug;
           return (
             <button
-              key={p.slug}
+              key={strand.slug}
+              type="button"
               role="tab"
               aria-selected={selected}
-              onClick={() => setParams({ strand: p.slug })}
+              onClick={() => setParams({ strand: strand.slug })}
               className={[
-              'rounded-full border px-4 py-2 text-[13px] font-medium',
-              'transition-[background-color,border-color,color] duration-150 ease-out',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2',
-              selected ?
-              'border-ink bg-ink text-white' :
-              'border-line bg-surface text-muted hover:border-ink/25 hover:text-ink'].
-              join(' ')}>
-              
-              {p.strand}
-            </button>);
-
+                'rounded-full border px-4 py-1.5 text-[13px] font-medium transition-colors',
+                selected ? 'border-ink bg-ink text-white' : 'border-line bg-surface text-muted hover:border-ink/25 hover:text-ink'
+              ].join(' ')}
+            >
+              {strand.code}
+            </button>
+          );
         })}
       </div>
 
-      <p className="mt-8 text-[15px] text-muted">{pathway.strandName}</p>
-
       <div className="mt-6">
-        <PathwayMap pathway={pathway} />
+        <Card className="p-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink">{active.code}</h2>
+            <Chip>{active.track}</Chip>
+          </div>
+          <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{active.name}</p>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            {activeFields.map((field) => (
+              <div key={field.field} className="rounded-md border border-line bg-canvas p-4">
+                <h3 className="text-[14px] font-semibold text-ink">{field.field}</h3>
+                <p className="mt-1 text-[12px] uppercase tracking-[0.05em] text-faint">Possible roles</p>
+                <ul className="mt-1.5 space-y-1 text-[13px] text-muted">
+                  {field.careers.map((career) => (
+                    <li key={career}>{career}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 border-t border-line pt-4">
+            <p className="text-[12px] uppercase tracking-[0.05em] text-faint">Before you plan around this strand</p>
+            <ul className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-muted">
+              {active.considerations.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-faint" aria-hidden />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
       </div>
 
-      <section className="mt-12 rounded-lg border border-line bg-surface p-7" aria-labelledby="pathway-note">
-        <h2 id="pathway-note" className="text-[17px] font-semibold tracking-[-0.015em] text-ink">
-          How to read this map
-        </h2>
-        <div className="mt-4 grid gap-6 sm:grid-cols-3">
-          {[
-          {
-            t: 'Strand',
-            d: 'Where you start in Grades 11 and 12. It shapes preparation, not destiny.'
-          },
-          {
-            t: 'College field',
-            d: 'Programmes commonly taken after this strand. Most accept students from other strands too.'
-          },
-          {
-            t: 'Career area',
-            d: 'Kinds of work graduates often move into. Roles change over time and vary by employer.'
-          }].
-          map((c) =>
-          <div key={c.t}>
-              <p className="text-[14px] font-semibold text-ink">{c.t}</p>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{c.d}</p>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>);
-
+      <p className="mt-5 text-[12px] leading-relaxed text-muted">
+        Confirm programme requirements, admission rules and costs with the specific school or college. STRANDPATH does
+        not maintain official curriculum or admission data. See{' '}
+        <Link to="/app/coach" className="font-medium text-brand hover:text-brand-dark">the Virtual Coach</Link> or your
+        guidance office for help interpreting these options.
+      </p>
+    </div>
+  );
 }

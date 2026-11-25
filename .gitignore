@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 
+# Local database and bootstrap credentials (never commit)
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local verification screenshots
+artifacts/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

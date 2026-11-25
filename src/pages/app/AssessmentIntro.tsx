@@ -1,77 +1,184 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ChevronLeftIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRightIcon, ClipboardListIcon, InfoIcon } from 'lucide-react';
+import { api, errorMessage, formatDate } from '../../lib/api';
+import { AssessmentSummary, QuestionnaireMeta } from '../../types/api';
 import { Button } from '../../components/ui/Button';
-import { GuidanceNote } from '../../components/ui/GuidanceNote';
-
-const facts = [
-{ label: 'Questions', value: '15' },
-{ label: 'Estimated time', value: '10 min' },
-{ label: 'Right answers', value: 'None' }];
-
-
-const sections = [
-{ t: 'Interests', d: 'Activities, subjects, and topics you are drawn to.' },
-{ t: 'Strengths', d: 'Skills you already use, in and out of class.' },
-{ t: 'Work style', d: 'How you learn and how you handle difficulty.' },
-{ t: 'Preferences', d: 'What you want from the next few years.' }];
-
+import { Alert, Card, ErrorState, LoadingBlock, Notice, PageHeader } from '../../components/ui/Primitives';
 
 export function AssessmentIntro() {
+  const navigate = useNavigate();
+  const [meta, setMeta] = useState<QuestionnaireMeta | null>(null);
+  const [history, setHistory] = useState<AssessmentSummary[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<'pre' | 'post' | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const load = () => {
+    setError(null);
+    Promise.all([
+      api.get<QuestionnaireMeta>('/questionnaire/active'),
+      api.get<{ assessments: AssessmentSummary[] }>('/assessments')
+    ])
+      .then(([questionnaire, list]) => {
+        setMeta(questionnaire);
+        setHistory(list.assessments);
+      })
+      .catch((err) => setError(errorMessage(err)));
+  };
+
+  useEffect(load, []);
+
+  if (error) return <div className="px-4 py-10 sm:px-8"><ErrorState message={error} onRetry={load} /></div>;
+  if (!meta) return <LoadingBlock label="Loading the questionnaire…" />;
+
+  const inProgress = history.find((a) => a.status === 'in_progress');
+  const submittedPre = history.filter((a) => a.type === 'pre' && a.status === 'submitted');
+  const submittedPost = history.filter((a) => a.type === 'post' && a.status === 'submitted');
+
+  const start = async (type: 'pre' | 'post') => {
+    setBusy(type);
+    setActionError(null);
+    try {
+      const data = await api.post<{ assessment: { id: number; answers: Record<string, string[]> } }>('/assessments', { type });
+      const firstUnanswered = meta.questions.findIndex((q) => !(data.assessment.answers[q.code] ?? []).length);
+      const index = firstUnanswered === -1 ? 1 : firstUnanswered + 1;
+      navigate(`/app/assessment/${data.assessment.id}/q/${index}`);
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-[760px] px-8 py-12">
-      <Link
-        to="/app"
-        className="inline-flex items-center gap-1 text-sm text-muted transition-colors duration-150 ease-out hover:text-ink">
-        
-        <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
-        Dashboard
-      </Link>
+    <div className="mx-auto max-w-[860px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow="Your assessment"
+        title="Let's Get Started"
+        description="This assessment describes your interests, strengths and preferences, then connects them to the seven SHS strands. Answer honestly — there are no right answers, and nothing is timed."
+      />
 
-      <h1 className="mt-6 text-[36px] font-semibold leading-tight tracking-[-0.03em] text-ink">
-        Before you begin
-      </h1>
-      <p className="mt-3 text-[17px] leading-relaxed text-muted">
-        This assessment helps describe your interests, strengths, and preferences, then connects them to the SHS
-        strands they most closely relate to. Answer as honestly as you can — the more accurate your answers, the more
-        useful the guidance.
-      </p>
+      {actionError && (
+        <div className="mt-5">
+          <Alert tone="danger">{actionError}</Alert>
+        </div>
+      )}
 
-      <dl className="mt-8 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
-        {facts.map((f) =>
-        <div key={f.label} className="bg-surface px-6 py-5">
-            <dt className="text-[13px] text-faint">{f.label}</dt>
-            <dd className="mt-1 text-[22px] font-semibold tracking-[-0.02em] text-ink">{f.value}</dd>
-          </div>
-        )}
-      </dl>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Questions', value: meta.questions.length },
+          { label: 'Sections', value: meta.sections.length },
+          { label: 'Estimated time', value: '10–12 min' }
+        ].map((fact) => (
+          <Card key={fact.label} className="px-5 py-4">
+            <p className="text-[12px] uppercase tracking-[0.05em] text-faint">{fact.label}</p>
+            <p className="mt-1 text-[22px] font-semibold tracking-[-0.02em] text-ink">{fact.value}</p>
+          </Card>
+        ))}
+      </div>
 
-      <h2 className="mt-12 text-[19px] font-semibold tracking-[-0.015em] text-ink">What you will answer</h2>
-      <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
-        {sections.map((s, i) =>
-        <li key={s.t} className="flex gap-4 px-6 py-4">
-            <span className="text-[13px] font-semibold tabular-nums text-faint">{String(i + 1).padStart(2, '0')}</span>
-            <div>
-              <p className="text-[15px] font-medium text-ink">{s.t}</p>
-              <p className="mt-0.5 text-[14px] text-muted">{s.d}</p>
+      <Card className="mt-6 p-6">
+        <h2 className="text-[16px] font-semibold text-ink">What you will answer</h2>
+        <ul className="mt-4 divide-y divide-line">
+          {meta.sections.map((section) => {
+            const count = meta.questions.filter((q) => q.section === section).length;
+            return (
+              <li key={section} className="flex items-center justify-between gap-4 py-2.5">
+                <span className="text-[14px] text-ink">{section}</span>
+                <span className="text-[13px] text-muted">{count} questions</span>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-4 border-t border-line pt-4 text-[13px] leading-relaxed text-muted">
+          Your answers save automatically as you go. You can leave and resume at any question, and you can review
+          everything before submitting.
+        </p>
+      </Card>
+
+      <div className="mt-6 space-y-4">
+        {inProgress && (
+          <Card className="border-brand-edge bg-brand-soft p-5">
+            <p className="text-[14px] font-semibold text-brand-dark">
+              {inProgress.type === 'post' ? 'Post-assessment' : 'Pre-assessment'} in progress
+            </p>
+            <p className="mt-1 text-[13px] text-brand-dark/80">
+              Started {formatDate(inProgress.startedAt, true)}. You can continue where you stopped.
+            </p>
+            <div className="mt-3">
+              <Button onClick={() => navigate(`/app/assessment/${inProgress.id}/q/1`)} size="sm">
+                Resume assessment
+              </Button>
             </div>
-          </li>
+          </Card>
         )}
-      </ul>
 
-      <div className="mt-10">
-        <GuidanceNote />
+        <Card className="p-6">
+          <div className="flex items-start gap-3">
+            <ClipboardListIcon className="mt-0.5 h-5 w-5 text-brand" aria-hidden />
+            <div>
+              <h2 className="text-[16px] font-semibold text-ink">Pre-assessment</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                Establishes your baseline. Complete this first; it is the version your improvement programme and
+                follow-up comparison are built from.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Button onClick={() => start('pre')} disabled={busy !== null}>
+                  {busy === 'pre' ? 'Starting…' : submittedPre.length ? 'Take a new pre-assessment' : 'Begin pre-assessment'}
+                  <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                </Button>
+                {submittedPre.length > 0 && (
+                  <span className="text-[12px] text-muted">
+                    {submittedPre.length} previous {submittedPre.length === 1 ? 'attempt' : 'attempts'} kept in history.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-start gap-3">
+            <ClipboardListIcon className="mt-0.5 h-5 w-5 text-muted" aria-hidden />
+            <div>
+              <h2 className="text-[16px] font-semibold text-ink">Post-assessment</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                Available after your pre-assessment. It uses the same questionnaire and compares your current answers
+                with your baseline. Differences are reported without claiming that the programme caused them.
+              </p>
+              <div className="mt-4">
+                <Button
+                  onClick={() => start('post')}
+                  disabled={busy !== null || submittedPre.length === 0}
+                  variant="secondary"
+                >
+                  {busy === 'post' ? 'Starting…' : submittedPost.length ? 'Take another post-assessment' : 'Begin post-assessment'}
+                </Button>
+                {submittedPre.length === 0 && (
+                  <p className="mt-2 text-[12px] text-faint">Complete a pre-assessment first.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
-      <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-line pt-8">
-        <Button to="/app/assessment/1" size="lg">
-          Begin
-          <ArrowRightIcon className="h-[18px] w-[18px]" aria-hidden="true" />
-        </Button>
-        <Button to="/app" variant="secondary" size="lg">
-          Not now
-        </Button>
+      <div className="mt-6">
+        <Alert tone="warn" title="About this questionnaire">
+          <span className="flex gap-2">
+            <InfoIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            {meta.validationNotice}
+          </span>
+        </Alert>
       </div>
-    </div>);
 
+      <div className="mt-4">
+        <Notice>
+          Version {meta.version} · Algorithm {meta.algorithmVersion}. A completed assessment always keeps the
+          questionnaire version and algorithm version it was scored with.
+        </Notice>
+      </div>
+    </div>
+  );
 }

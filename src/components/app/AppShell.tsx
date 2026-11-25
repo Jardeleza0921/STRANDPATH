@@ -1,91 +1,191 @@
-import React, { useEffect } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  BarChart3Icon,
   ClipboardListIcon,
   CompassIcon,
+  HistoryIcon,
   HomeIcon,
   LayersIcon,
+  LifeBuoyIcon,
+  LogOutIcon,
+  MailWarningIcon,
+  MenuIcon,
+  MessageCircleIcon,
   RouteIcon,
   SettingsIcon,
-  SmartphoneIcon } from
-'lucide-react';
+  SparklesIcon,
+  UserIcon,
+  XIcon
+} from 'lucide-react';
 import { Logo } from '../ui/Logo';
+import { useAuth } from '../../contexts/AuthContext';
+import { ThemeSwitcher } from '../ui/ThemeSwitcher';
 
 const nav = [
-{ to: '/app', label: 'Dashboard', icon: HomeIcon, end: true },
-{ to: '/app/assessment/intro', label: 'Assessment', icon: ClipboardListIcon },
-{ to: '/app/results', label: 'My results', icon: CompassIcon },
-{ to: '/app/strands/ict', label: 'Strands', icon: LayersIcon },
-{ to: '/app/pathways', label: 'Pathways', icon: RouteIcon }];
+  { to: '/app', label: 'Home', icon: HomeIcon, end: true },
+  { to: '/app/assessment', label: "Let's Get Started", icon: ClipboardListIcon },
+  { to: '/app/results', label: 'Your Suggested Strands', icon: CompassIcon },
+  { to: '/app/strands', label: 'Explore Strands', icon: LayersIcon },
+  { to: '/app/pathways', label: 'Explore Your Future', icon: RouteIcon },
+  { to: '/app/program', label: 'My Improvement Plan', icon: SparklesIcon },
+  { to: '/app/progress', label: 'Track My Progress', icon: BarChart3Icon },
+  { to: '/app/history', label: 'My Previous Assessments', icon: HistoryIcon },
+  { to: '/app/coach', label: 'Ask the Virtual Coach', icon: MessageCircleIcon },
+  { to: '/app/support', label: 'Get Help', icon: LifeBuoyIcon }
+];
 
+const account = [
+  { to: '/app/profile', label: 'My Profile', icon: UserIcon },
+  { to: '/app/settings', label: 'Settings', icon: SettingsIcon }
+];
 
 export function AppShell() {
   const { pathname } = useLocation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    setOpen(false);
   }, [pathname]);
 
-  return (
-    <div className="flex min-h-full w-full bg-canvas">
-      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
-        <Link to="/" className="px-2" aria-label="StrandPath home">
-          <Logo size={26} />
-        </Link>
-
-        <nav aria-label="Application" className="mt-8 flex-1 space-y-1">
-          {nav.map(({ to, label, icon: Icon, end }) =>
+  const sidebar = (
+    <div className="flex h-full flex-col">
+      <Link to="/app" className="px-2" aria-label="StrandPath dashboard">
+        <Logo size={26} inverted />
+      </Link>
+      <div className="mt-4 px-2">
+        <ThemeSwitcher onDark />
+      </div>
+      <nav aria-label="Student application" className="mt-5 flex-1 space-y-0.5 overflow-y-auto pr-1">
+        {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-            [
-            'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm',
-            'transition-[background-color,color] duration-150 ease-out',
-            isActive ? 'bg-brand-soft font-medium text-brand-dark' : 'text-muted hover:bg-canvas hover:text-ink'].
-            join(' ')
-            }>
-            
-              <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-              {label}
-            </NavLink>
-          )}
-        </nav>
-
-        <div className="space-y-1 border-t border-line pt-4">
+              [
+                'flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition-all duration-150',
+                isActive
+                  ? 'bg-white/10 font-semibold text-panel-ink shadow-[inset_0_1px_0_rgba(255,255,255,.12)]'
+                  : 'text-panel-muted hover:bg-white/5 hover:text-panel-ink'
+              ].join(' ')
+            }
+          >
+            <Icon className="h-[17px] w-[17px]" aria-hidden />
+            {label}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="mt-3 border-t border-white/10 pt-3">
+        {account.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              [
+                'flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition-all duration-150',
+                isActive
+                  ? 'bg-white/10 font-semibold text-panel-ink'
+                  : 'text-panel-muted hover:bg-white/5 hover:text-panel-ink'
+              ].join(' ')
+            }
+          >
+            <Icon className="h-[17px] w-[17px]" aria-hidden />
+            {label}
+          </NavLink>
+        ))}
+        {(user?.role === 'admin' || user?.role === 'guidance') && (
           <Link
-            to="/mobile"
-            className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted transition-colors duration-150 ease-out hover:bg-canvas hover:text-ink">
-            
-            <SmartphoneIcon className="h-[18px] w-[18px]" aria-hidden="true" />
-            Mobile app
+            to="/admin"
+            className="flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-panel-ink hover:bg-white/5"
+          >
+            <BarChart3Icon className="h-[17px] w-[17px]" aria-hidden />
+            Admin area
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={async () => {
+            await logout();
+            navigate('/login');
+          }}
+          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-[13px] text-panel-muted hover:bg-white/5 hover:text-panel-ink"
+        >
+          <LogOutIcon className="h-[17px] w-[17px]" aria-hidden />
+          Sign out
+        </button>
+      </div>
+      <div className="mt-3 flex items-center gap-3 rounded-md bg-white/10 px-3 py-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-[12px] font-medium text-panel-ink" aria-hidden>
+          {user?.name?.slice(0, 2).toUpperCase() ?? 'SP'}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium text-panel-ink">{user?.name}</p>
+          <p className="truncate text-[11px] text-panel-muted">Student account</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex min-h-screen w-full bg-canvas">
+      <aside className="sp-panel sticky top-0 hidden h-screen w-[258px] shrink-0 rounded-none border-y-0 border-l-0 px-4 py-5 lg:block">
+        {sidebar}
+      </aside>
+
+      {open && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <button
+            type="button"
+            aria-label="Close navigation"
+            className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <div className="sp-panel absolute left-0 top-0 h-full w-[280px] rounded-none p-4">{sidebar}</div>
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sp-panel sticky top-0 z-30 flex h-14 items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-white/10 text-panel-ink"
+            aria-label="Open navigation"
+          >
+            <MenuIcon className="h-4 w-4" aria-hidden />
+          </button>
+          <Link to="/app" aria-label="StrandPath dashboard">
+            <Logo size={24} inverted />
           </Link>
           <button
             type="button"
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted transition-colors duration-150 ease-out hover:bg-canvas hover:text-ink">
-            
-            <SettingsIcon className="h-[18px] w-[18px]" aria-hidden="true" />
-            Settings
+            onClick={() => setOpen(!open)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-white/10 text-panel-muted"
+            aria-label="Toggle navigation"
+          >
+            {open ? <XIcon className="h-4 w-4" aria-hidden /> : <MenuIcon className="h-4 w-4" aria-hidden />}
           </button>
-          <div className="mt-3 flex items-center gap-3 rounded-md bg-canvas px-3 py-3">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[13px] font-medium text-white"
-              aria-hidden="true">
-              
-              MR
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[13px] font-medium text-ink">Maria Reyes</p>
-              <p className="truncate text-[12px] text-faint">Grade 10 · Section B</p>
-            </div>
+        </header>
+
+        {user && !user.emailVerified && (
+          <div className="border-b border-warn/25 bg-warn-soft px-4 py-2.5 text-[12.5px] text-warn sm:px-6">
+            <Link to="/verify-email" className="inline-flex items-center gap-2 font-medium hover:underline">
+              <MailWarningIcon className="h-4 w-4" aria-hidden />
+              Confirm your email address to keep password recovery working. Open confirmation →
+            </Link>
           </div>
-        </div>
-      </aside>
+        )}
 
-      <main className="min-w-0 flex-1">
-        <Outlet />
-      </main>
-    </div>);
-
+        <main className="min-w-0 flex-1">
+          <div className="sp-page">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 }

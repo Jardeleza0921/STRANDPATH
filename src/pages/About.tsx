@@ -77,10 +77,10 @@ export function About() {
             <h2 className="text-[26px] font-semibold tracking-[-0.02em] text-ink">
               See how StrandPath describes your options.
             </h2>
-            <p className="mt-2 text-[15px] text-muted">No account required to try the assessment.</p>
+            <p className="mt-2 text-[15px] text-muted">Students create an account so results and progress can be kept and reviewed.</p>
           </div>
-          <Button to="/app" size="lg">
-            Start exploring
+          <Button to="/register" size="lg">
+            Create a student account
             <ArrowRightIcon className="h-[18px] w-[18px]" aria-hidden="true" />
           </Button>
         </div>

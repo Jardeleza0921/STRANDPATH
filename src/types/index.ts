@@ -4,7 +4,7 @@ export interface Strand {
   slug: string;
   code: string;
   name: string;
-  track: 'Academic' | 'TVL' | 'Arts & Design' | 'Sports';
+  track: string;
   isSubTrack?: boolean;
   tagline: string;
   summary: string;

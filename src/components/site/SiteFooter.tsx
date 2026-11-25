@@ -8,6 +8,7 @@ const columns = [
   links: [
   { label: 'How it works', to: '/how-it-works' },
   { label: 'Explore strands', to: '/strands' },
+  { label: 'Assessment methodology', to: '/methodology' },
   { label: 'Start exploring', to: '/app' }]
 
 },
@@ -25,6 +26,7 @@ const columns = [
   links: [
   { label: 'About StrandPath', to: '/about' },
   { label: 'Guidance philosophy', to: '/about#philosophy' },
+  { label: 'Assessment methodology', to: '/methodology' },
   { label: 'Prototype map', to: '/cover' }]
 
 }];
@@ -61,7 +63,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-14 flex flex-col gap-3 border-t border-line pt-6 text-[13px] text-faint md:flex-row md:items-center md:justify-between">
-          <p>© 2026 StrandPath. An educational guidance concept.</p>
+          <p>© 2026 StrandPath. Student guidance for Senior High School.</p>
           <p>StrandPath offers guidance, not decisions.</p>
         </div>
       </div>

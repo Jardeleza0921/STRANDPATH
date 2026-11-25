@@ -14,8 +14,8 @@ export function HowItWorks() {
             From self-reflection to a direction worth exploring.
           </h1>
           <p className="mt-5 max-w-2xl text-[17px] leading-relaxed text-muted">
-            StrandPath moves in one direction, step by step. Nothing is scored, ranked, or recorded against you —
-            each step simply adds detail to a picture you can read yourself.
+            StrandPath moves in one direction, step by step. Your answers are scored descriptively — never graded —
+            and saved so you can revisit them, compare attempts, and build a development plan.
           </p>
         </div>
       </section>
@@ -51,8 +51,8 @@ export function HowItWorks() {
               What the assessment asks
             </h2>
             <p className="mt-4 text-[16px] leading-relaxed text-muted">
-              Fifteen questions across four areas. Most are simple selections; a few ask how much a statement sounds
-              like you. There are no right answers and nothing is timed.
+              About twenty questions across six areas. Most are simple selections; a few ask how much a statement
+              sounds like you. There are no right answers and nothing is timed.
             </p>
             <div className="mt-8">
               <GuidanceNote />
@@ -64,7 +64,9 @@ export function HowItWorks() {
             { t: 'Interests', d: 'Activities, subjects, and topics you are drawn to.' },
             { t: 'Strengths', d: 'Skills you already use, including outside the classroom.' },
             { t: 'Work style', d: 'How you learn, handle difficulty, and prefer to work.' },
-            { t: 'Preferences', d: 'What you want from the next few years.' }].
+            { t: 'Talents', d: 'Things you have already done outside class.' },
+            { t: 'Preferences', d: 'What you want from the next few years.' },
+            { t: 'Readiness', d: 'How ready you feel to choose, and where you want support.' }].
             map((row) =>
             <div key={row.t} className="bg-surface px-6 py-5">
                 <dt className="text-[15px] font-semibold text-ink">{row.t}</dt>
@@ -78,8 +80,8 @@ export function HowItWorks() {
       <section className="bg-surface">
         <div className="mx-auto flex max-w-content flex-col items-start gap-6 px-6 py-16 md:flex-row md:items-center md:justify-between">
           <h2 className="text-[26px] font-semibold tracking-[-0.02em] text-ink">Start when you are ready.</h2>
-          <Button to="/app" size="lg">
-            Start exploring
+          <Button to="/register" size="lg">
+            Create a student account
             <ArrowRightIcon className="h-[18px] w-[18px]" aria-hidden="true" />
           </Button>
         </div>

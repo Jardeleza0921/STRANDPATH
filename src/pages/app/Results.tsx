@@ -1,207 +1,359 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowRightIcon, DownloadIcon, RotateCcwIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CheckIcon, MessageCircleIcon, PrinterIcon, SparklesIcon } from 'lucide-react';
+import { api, errorMessage, formatDate } from '../../lib/api';
+import { Assessment, AssessmentSummary, RankedStrand } from '../../types/api';
+import { ComparisonBlock } from '../../components/app/Comparison';
 import { Button } from '../../components/ui/Button';
-import { MatchBadge, MatchBar } from '../../components/ui/Badge';
-import { GuidanceNote } from '../../components/ui/GuidanceNote';
-import { contributingStrengths, relatedInterests, resultMatches } from '../../data/results';
+import {
+  Alert,
+  Card,
+  Chip,
+  EmptyState,
+  ErrorState,
+  LoadingBlock,
+  PageHeader,
+  ScoreBar
+} from '../../components/ui/Primitives';
 
-const nextSteps = [
-'Read the full strand page for your strongest match',
-'Check which of these strands your school actually offers',
-'Show these results to your adviser, counsellor, or parents',
-'Explore two pathways: one that excites you, one you know least about'];
-
+const levelTone = {
+  strong: 'brand',
+  good: 'success',
+  possible: 'neutral',
+  exploratory: 'neutral'
+} as const;
 
 export function Results() {
-  const [top, ...rest] = resultMatches;
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+
+  const load = () => {
+    setError(null);
+    setNotFound(false);
+    const fetchAssessment = async () => {
+      if (id) return (await api.get<{ assessment: Assessment }>(`/assessments/${id}`)).assessment;
+      const list = await api.get<{ assessments: AssessmentSummary[] }>('/assessments');
+      const latest = list.assessments.find((a) => a.status === 'submitted');
+      if (!latest) {
+        setNotFound(true);
+        return null;
+      }
+      return (await api.get<{ assessment: Assessment }>(`/assessments/${latest.id}`)).assessment;
+    };
+    fetchAssessment()
+      .then((data) => {
+        if (!data) return;
+        if (data.status !== 'submitted') {
+          navigate(`/app/assessment/${data.id}/q/1`, { replace: true });
+          return;
+        }
+        setAssessment(data);
+      })
+      .catch((err) => setError(errorMessage(err)));
+  };
+
+  useEffect(load, [id, navigate]);
+
+  const selectStrand = async (slug: string) => {
+    if (!assessment) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await api.post(`/assessments/${assessment.id}/selection`, { strandSlug: slug });
+      setAssessment({ ...assessment, selectedStrand: slug, selectedAt: new Date().toISOString() });
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const generateProgramme = async () => {
+    if (!assessment) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await api.post('/programs/generate', { assessmentId: assessment.id });
+      navigate('/app/program');
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (error) return <div className="px-4 py-10 sm:px-8"><ErrorState message={error} onRetry={load} /></div>;
+  if (!assessment) return notFound ? <div className="px-4 py-10 sm:px-8"><EmptyState title="No submitted assessment yet" description="Complete the pre-assessment to see your results." action={<Button to="/app/assessment">Start assessment</Button>} /></div> : <LoadingBlock label="Loading your results…" />;
+
+  const ranked = assessment.ranked ?? [];
+  const selected = assessment.selectedStrand;
+  const selectedStrand = ranked.find((r) => r.slug === selected);
 
   return (
-    <div className="mx-auto max-w-[1000px] px-8 py-12">
-      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-line pb-8">
-        <div>
-          <p className="text-[13px] text-muted">Completed 14 September 2026 · 15 of 15 answered</p>
-          <h1 className="mt-2 text-[36px] font-semibold leading-tight tracking-[-0.03em] text-ink">
-            Your StrandPath results
-          </h1>
-          <p className="mt-2 max-w-xl text-[16px] leading-relaxed text-muted">
-            Based on what you selected, these strands connect most closely to your interests and strengths.
-          </p>
+    <div className="mx-auto max-w-[1100px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow={`${assessment.type === 'post' ? 'Post-assessment' : 'Pre-assessment'} · ${formatDate(assessment.submittedAt)}`}
+        title="Your Suggested Strands"
+        description="These results describe how your answers align with each strand. They are evidence for a conversation, not a decision about your future."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => window.print()}>
+              <PrinterIcon className="h-4 w-4" aria-hidden />
+              Print / save PDF
+            </Button>
+            <Button to="/app/assessment" variant="secondary" size="sm">
+              New assessment
+            </Button>
+          </>
+        }
+      />
+
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-[11.5px] text-muted">
+        <Chip>Questionnaire v{assessment.questionnaireVersion ?? '—'}</Chip>
+        <Chip>Algorithm {assessment.algorithmVersion}</Chip>
+        <Chip>{assessment.answeredCount} of {assessment.total} answered</Chip>
+        {selected && <Chip tone="success">Selected: {selected.toUpperCase()}</Chip>}
+      </div>
+
+      {(assessment.warnings ?? []).length > 0 && (
+        <div className="mt-5 space-y-2">
+          {assessment.warnings!.map((warning) => (
+            <Alert key={warning.type} tone={warning.type === 'no_mapped_items' ? 'danger' : 'info'}>
+              {warning.message}
+            </Alert>
+          ))}
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="sm">
-            <DownloadIcon className="h-4 w-4" aria-hidden="true" />
-            Save PDF
-          </Button>
-          <Button to="/app/assessment/intro" variant="secondary" size="sm">
-            <RotateCcwIcon className="h-4 w-4" aria-hidden="true" />
-            Retake
-          </Button>
-        </div>
-      </header>
+      )}
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[1.5fr_1fr]">
+      {actionError && <div className="mt-4"><Alert tone="danger">{actionError}</Alert></div>}
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.55fr_1fr]">
         <div>
-          <h2 className="text-[19px] font-semibold tracking-[-0.015em] text-ink">Strongest matches</h2>
-
-          {/* Featured match */}
-          <article className="mt-4 rounded-lg border border-brand bg-surface p-7">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-[13px] font-semibold uppercase tracking-[0.06em] text-brand">{top.name}</p>
-                <h3 className="mt-1.5 text-[26px] font-semibold tracking-[-0.02em] text-ink">
-                  Information & Communications Technology
-                </h3>
-              </div>
-              <MatchBadge level={top.level} />
+          <section aria-labelledby="ranked-heading">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 id="ranked-heading" className="text-[19px] font-semibold tracking-[-0.015em] text-ink">
+                Strand alignment, ranked
+              </h2>
+              <Link to="/app/strands/compare" className="text-[13px] font-medium text-brand hover:text-brand-dark">
+                Compare strands side by side
+              </Link>
             </div>
 
-            <div className="mt-5">
-              <MatchBar level={top.level} percent={top.percent} />
+            <div className="mt-4 space-y-4">
+              {ranked.map((strand) => (
+                <StrandResultCard
+                  key={strand.slug}
+                  strand={strand}
+                  selected={selected === strand.slug}
+                  busy={busy}
+                  onSelect={() => selectStrand(strand.slug)}
+                  onGenerate={generateProgramme}
+                />
+              ))}
             </div>
+          </section>
 
-            <p className="mt-5 text-[16px] leading-relaxed text-ink">{top.explanation}</p>
+          {assessment.comparison && <ComparisonBlock comparison={assessment.comparison} />}
+        </div>
 
-            <div className="mt-6 grid gap-6 border-t border-line pt-6 sm:grid-cols-2">
-              <div>
-                <h4 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-faint">
-                  Strengths contributing
-                </h4>
-                <ul className="mt-2.5 space-y-1.5">
-                  {top.strengths.map((s) =>
-                  <li key={s} className="text-[14px] text-ink">
-                      {s}
-                    </li>
-                  )}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-faint">Related interests</h4>
-                <ul className="mt-2.5 space-y-1.5">
-                  {top.interests.map((s) =>
-                  <li key={s} className="text-[14px] text-ink">
-                      {s}
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-md bg-canvas p-5">
-              <h4 className="text-[12px] font-semibold uppercase tracking-[0.06em] text-faint">Things to explore</h4>
-              <ul className="mt-2.5 space-y-2">
-                {top.explore.map((e) =>
-                <li key={e} className="flex gap-2.5 text-[14px] leading-relaxed text-ink">
-                    <span className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-brand" aria-hidden="true" />
-                    {e}
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button to={`/app/strands/${top.slug}`}>
-                View strand details
-                <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
-              </Button>
-              <Button to={`/app/pathways?strand=${top.slug}`} variant="secondary">
-                Explore pathways
-              </Button>
-            </div>
-          </article>
-
-          {/* Other matches */}
-          <div className="mt-5 space-y-4">
-            {rest.map((m) =>
-            <article key={m.slug} className="rounded-lg border border-line bg-surface p-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-[19px] font-semibold tracking-[-0.015em] text-ink">{m.name}</h3>
-                  <MatchBadge level={m.level} />
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <Card className="p-5">
+            <h2 className="text-[15px] font-semibold text-ink">Your strand choice</h2>
+            {selectedStrand ? (
+              <>
+                <p className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-ink">{selectedStrand.code}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                  Rank #{selectedStrand.rank} on this attempt. Selection is always yours; STRANDPATH builds support
+                  around it rather than overriding it.
+                </p>
+                <div className="mt-4 space-y-2">
+                  <Button full size="sm" onClick={generateProgramme} disabled={busy}>
+                    <SparklesIcon className="h-4 w-4" aria-hidden />
+                    {busy ? 'Working…' : 'Generate improvement programme'}
+                  </Button>
+                  <Button to="/app/program" variant="secondary" size="sm" full>
+                    View programme
+                  </Button>
                 </div>
-                <div className="mt-4">
-                  <MatchBar level={m.level} percent={m.percent} />
-                </div>
-                <p className="mt-4 text-[15px] leading-relaxed text-muted">{m.explanation}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {[...m.strengths, ...m.interests].slice(0, 4).map((t) =>
-                <span key={t} className="rounded-full border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink">
-                      {t}
-                    </span>
-                )}
-                </div>
-                <div className="mt-5 flex flex-wrap gap-4 border-t border-line pt-4">
-                  <Link
-                  to={`/app/strands/${m.slug}`}
-                  className="text-sm font-medium text-brand transition-colors duration-150 ease-out hover:text-brand-dark">
-                  
-                    View strand details
-                  </Link>
-                  <Link
-                  to={`/app/pathways?strand=${m.slug}`}
-                  className="text-sm font-medium text-muted transition-colors duration-150 ease-out hover:text-ink">
-                  
-                    Explore pathways
-                  </Link>
-                </div>
-              </article>
+              </>
+            ) : (
+              <p className="mt-2 text-[13px] leading-relaxed text-muted">
+                Choose a strand from the ranked list when you are ready. You can change it later, including after a
+                follow-up assessment.
+              </p>
             )}
-          </div>
-        </div>
+          </Card>
 
-        <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
-          <GuidanceNote />
+          {assessment.strengths && assessment.strengths.length > 0 && (
+            <Card className="p-5">
+              <h2 className="text-[15px] font-semibold text-ink">What your answers show as strengths</h2>
+              <ul className="mt-3 space-y-3">
+                {assessment.strengths.map((strength) => (
+                  <li key={strength.key}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[13.5px] text-ink">{strength.label}</span>
+                      <span className="text-[12px] tabular-nums text-muted">{strength.percent}%</span>
+                    </div>
+                    <div className="mt-1"><ScoreBar percent={strength.percent} label={`${strength.label} ${strength.percent} percent`} /></div>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 border-t border-line pt-3 text-[11.5px] leading-relaxed text-faint">
+                Percentages are shares of the attainable range for each dimension in this attempt. They are descriptive,
+                not a measure of ability.
+              </p>
+            </Card>
+          )}
 
-          <section className="rounded-lg border border-line bg-surface p-6" aria-labelledby="strength-profile">
-            <h2 id="strength-profile" className="text-[15px] font-semibold text-ink">
-              Your strength profile
-            </h2>
-            <ul className="mt-4 space-y-3">
-              {contributingStrengths.map((s) =>
-              <li key={s.label} className="flex items-center justify-between gap-3">
-                  <span className="text-[14px] text-ink">{s.label}</span>
-                  <span
-                  className={`text-[12px] font-medium ${
-                  s.level === 'High' ? 'text-brand' : s.level === 'Moderate' ? 'text-muted' : 'text-faint'}`
-                  }>
-                  
-                    {s.level}
-                  </span>
-                </li>
-              )}
-            </ul>
-            <p className="mt-4 border-t border-line pt-3 text-[12px] leading-relaxed text-faint">
-              Descriptive only. These labels reflect what you selected today, not a measure of ability.
-            </p>
-          </section>
+          {assessment.development && assessment.development.length > 0 && (
+            <Card className="p-5">
+              <h2 className="text-[15px] font-semibold text-ink">Areas worth developing</h2>
+              <ul className="mt-3 space-y-3">
+                {assessment.development.map((area) => (
+                  <li key={area.key}>
+                    <p className="text-[13.5px] font-medium text-ink">{area.label}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{area.developing}</p>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
-          <section className="rounded-lg border border-line bg-surface p-6" aria-labelledby="interests">
-            <h2 id="interests" className="text-[15px] font-semibold text-ink">
-              Interests you selected
-            </h2>
-            <div className="mt-3.5 flex flex-wrap gap-2">
-              {relatedInterests.map((i) =>
-              <span key={i} className="rounded-full border border-line bg-canvas px-3 py-1.5 text-[13px] text-ink">
-                  {i}
-                </span>
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-line bg-surface p-6" aria-labelledby="next-steps">
-            <h2 id="next-steps" className="text-[15px] font-semibold text-ink">
-              Suggested next steps
-            </h2>
-            <ol className="mt-4 space-y-3">
-              {nextSteps.map((s, i) =>
-              <li key={s} className="flex gap-3 text-[14px] leading-relaxed text-ink">
-                  <span className="text-[13px] font-semibold tabular-nums text-faint">{i + 1}</span>
-                  {s}
-                </li>
-              )}
+          <Card className="p-5">
+            <h2 className="text-[15px] font-semibold text-ink">Next steps</h2>
+            <ol className="mt-3 space-y-2.5 text-[13px] leading-relaxed text-muted">
+              <li>1. Read the strand pages for your top two, including the considerations.</li>
+              <li>2. Compare them side by side and note what you would actually study.</li>
+              <li>3. Talk it through with your adviser, a parent, or the guidance office.</li>
+              <li>4. Choose a strand and start a preparation programme.</li>
             </ol>
-          </section>
+            <div className="mt-4 space-y-2">
+              <Button to="/app/coach" variant="secondary" size="sm" full>
+                <MessageCircleIcon className="h-4 w-4" aria-hidden />
+                Ask the Virtual Coach to explain
+              </Button>
+              <Button to="/app/history" variant="ghost" size="sm" full>
+                View assessment history
+              </Button>
+            </div>
+          </Card>
         </aside>
       </div>
-    </div>);
+    </div>
+  );
+}
 
+function StrandResultCard({
+  strand,
+  selected,
+  busy,
+  onSelect,
+  onGenerate
+}: {
+  strand: RankedStrand;
+  selected: boolean;
+  busy: boolean;
+  onSelect: () => void;
+  onGenerate: () => void;
+}) {
+  const [open, setOpen] = useState(strand.rank === 1);
+  return (
+    <article className={`rounded-lg border bg-surface ${selected ? 'border-brand' : 'border-line'}`}>
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[12px] font-semibold tabular-nums text-faint">#{strand.rank}</span>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-brand">{strand.code}</p>
+              <Chip tone={levelTone[strand.level]}>{strand.levelLabel}</Chip>
+              {selected && <Chip tone="success">Your selection</Chip>}
+            </div>
+            <h3 className="mt-1.5 text-[19px] font-semibold tracking-[-0.015em] text-ink">{strand.name}</h3>
+          </div>
+          <p className="text-[22px] font-semibold tabular-nums tracking-[-0.02em] text-ink">
+            {strand.score.toFixed(1)}
+            <span className="ml-1 text-[11px] font-normal text-faint">/ 100 alignment</span>
+          </p>
+        </div>
+
+        <div className="mt-3">
+          <ScoreBar percent={strand.score} label={`${strand.code} alignment ${strand.score.toFixed(1)} of 100`} />
+        </div>
+
+        <p className="mt-4 text-[14px] leading-relaxed text-ink">{strand.explanation}</p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setOpen(!open)}>
+            {open ? 'Hide evidence' : 'Show evidence'}
+          </Button>
+          <Button to={`/app/strands/${strand.slug}`} variant="ghost" size="sm">
+            Strand details
+          </Button>
+          <Button to={`/app/pathways?strand=${strand.slug}`} variant="ghost" size="sm">
+            Careers
+          </Button>
+        </div>
+
+        {open && (
+          <div className="mt-4 space-y-4 border-t border-line pt-4">
+            <div>
+              <h4 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-faint">
+                Dimensions that contributed
+              </h4>
+              <ul className="mt-2 space-y-2.5">
+                {strand.evidence.map((evidence) => (
+                  <li key={evidence.category}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-[13px] text-ink">
+                        {evidence.label}
+                        <span className="ml-1.5 text-[11.5px] text-faint">weight {Math.round(evidence.weight * 100)}%</span>
+                      </p>
+                      <span className="text-[12px] tabular-nums text-muted">{evidence.percent}%</span>
+                    </div>
+                    <div className="mt-1"><ScoreBar percent={evidence.percent} tone="muted" label={evidence.label} /></div>
+                    {evidence.answers.length > 0 && (
+                      <p className="mt-1 text-[11.5px] leading-relaxed text-muted">
+                        From your answers: {evidence.answers.join(' · ')}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {strand.gaps.length > 0 && (
+              <div className="rounded-md bg-canvas p-3.5">
+                <h4 className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-faint">
+                  Preparation worth considering
+                </h4>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+                  {strand.gaps.map((gap) => gap.label).join(', ')} scored lower in this attempt. That is current
+                  preparation, not a barrier — the programme can target it.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+          <Button onClick={onSelect} disabled={selected || busy} size="sm">
+            {selected ? 'Selected' : busy ? 'Saving…' : 'Choose this strand'}
+            {selected && <CheckIcon className="h-3.5 w-3.5" aria-hidden />}
+          </Button>
+          {selected && (
+            <Button onClick={onGenerate} variant="secondary" size="sm" disabled={busy}>
+              Build preparation programme
+            </Button>
+          )}
+          <Link to={`/app/coach?prompt=${encodeURIComponent(`Why did ${strand.code} rank #${strand.rank} for me?`)}`} className="inline-flex items-center gap-1 px-2 text-[12.5px] font-medium text-muted hover:text-ink">
+            Ask the coach about this
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
 }

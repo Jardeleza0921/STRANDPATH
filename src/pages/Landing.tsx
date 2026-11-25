@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon, CompassIcon, LayersIcon, RouteIcon } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { PathPreview } from '../components/site/PathPreview';
 import { StrandCard } from '../components/site/StrandCard';
-import { gridStrands } from '../data/strands';
 import { steps } from '../data/steps';
+import { api } from '../lib/api';
+import { Strand } from '../types/api';
 
 const pillars = [
 {
@@ -26,6 +27,15 @@ const pillars = [
 
 
 export function Landing() {
+  const [teasers, setTeasers] = useState<Strand[]>([]);
+
+  useEffect(() => {
+    api
+      .get<{ strands: Strand[] }>('/strands')
+      .then((data) => setTeasers(data.strands.slice(0, 3)))
+      .catch(() => undefined);
+  }, []);
+
   return (
     <>
       {/* Hero */}
@@ -44,7 +54,7 @@ export function Landing() {
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <Button to="/app" size="lg">
+              <Button to="/register" size="lg">
                 Start exploring
                 <ArrowRightIcon className="h-[18px] w-[18px]" aria-hidden="true" />
               </Button>
@@ -187,7 +197,7 @@ export function Landing() {
           </div>
 
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {gridStrands.slice(0, 3).map((s) =>
+            {teasers.map((s) =>
             <StrandCard key={s.slug} strand={s} />
             )}
           </div>
@@ -242,11 +252,11 @@ export function Landing() {
               Ready to see what may fit you?
             </h2>
             <p className="mt-3 text-[16px] leading-relaxed text-muted">
-              Around 10 minutes, 15 questions, and a set of matches you can talk through with someone you trust.
+              Around 10 minutes, about twenty questions, and a set of matches you can talk through with someone you trust.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button to="/app" size="lg">
+            <Button to="/register" size="lg">
               Start exploring
               <ArrowRightIcon className="h-[18px] w-[18px]" aria-hidden="true" />
             </Button>

@@ -1,136 +1,303 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ClockIcon, LayersIcon, RouteIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  BarChart3Icon,
+  ClipboardListIcon,
+  MessageCircleIcon,
+  SparklesIcon,
+  TargetIcon
+} from 'lucide-react';
+import { api, errorMessage, formatDate } from '../../lib/api';
+import { DashboardData, NotificationItem } from '../../types/api';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Progress } from '../../components/ui/Progress';
-import { useAssessment } from '../../contexts/AssessmentContext';
-import { gridStrands } from '../../data/strands';
-
-const shortcuts = [
-{
-  to: '/app/strands/ict',
-  icon: LayersIcon,
-  title: 'Explore strands',
-  body: 'Read what each of the seven strands involves before or after your assessment.'
-},
-{
-  to: '/app/pathways',
-  icon: RouteIcon,
-  title: 'Explore pathways',
-  body: 'Follow a strand toward related college fields and career areas.'
-}];
-
+import {
+  Alert,
+  Card,
+  EmptyState,
+  ErrorState,
+  LoadingBlock,
+  PageHeader,
+  ScoreBar,
+  Stat,
+  Chip
+} from '../../components/ui/Primitives';
 
 export function Dashboard() {
-  const { answeredCount, total } = useAssessment();
-  const started = answeredCount > 0;
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [notices, setNotices] = useState<NotificationItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setError(null);
+    api
+      .get<DashboardData>('/dashboard')
+      .then(setData)
+      .catch((err) => setError(errorMessage(err)));
+  };
+
+  useEffect(load, []);
+
+  useEffect(() => {
+    api
+      .get<{ notifications: NotificationItem[] }>('/notifications')
+      .then((result) => setNotices(result.notifications.filter((item) => !item.readAt).slice(0, 3)))
+      .catch(() => undefined);
+  }, []);
+
+  const markNoticesRead = async () => {
+    try {
+      await api.post('/notifications/read');
+      setNotices([]);
+    } catch {
+      /* non-critical */
+    }
+  };
+
+  if (error) return <div className="px-4 py-10 sm:px-8"><ErrorState message={error} onRetry={load} /></div>;
+  if (!data) return <LoadingBlock label="Loading your dashboard…" />;
+
+  const firstName = data.user.name.split(' ')[0];
+  const latest = data.assessment.latestPre;
+  const topThree = latest?.ranked.slice(0, 3) ?? [];
 
   return (
-    <div className="mx-auto max-w-[1000px] px-8 py-12">
-      <header>
-        <p className="text-[13px] text-muted">Tuesday, 14 September</p>
-        <h1 className="mt-2 text-[36px] font-semibold leading-tight tracking-[-0.03em] text-ink">
-          Welcome to StrandPath, Maria.
-        </h1>
-        <p className="mt-2 text-[17px] text-muted">Let’s discover what may fit you.</p>
-      </header>
+    <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      <PageHeader
+        eyebrow={data.profile?.gradeLevel ? `${data.profile.gradeLevel} · ${data.profile.school ?? 'StrandPath'}` : undefined}
+        title={`Welcome back, ${firstName}.`}
+        description="Your results, plan and progress are built only from the assessments you have completed. Everything here is yours to revisit."
+        actions={
+          <Button to={latest ? '/app/results' : '/app/assessment'} size="sm">
+            {latest ? 'View latest results' : 'Start assessment'}
+            <ArrowRightIcon className="h-4 w-4" aria-hidden />
+          </Button>
+        }
+      />
 
-      <section
-        className="mt-10 rounded-lg border border-line bg-surface p-8"
-        aria-labelledby="assessment-card">
-        
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-lg">
-            <Badge tone="brand">{started ? 'In progress' : 'Not started'}</Badge>
-            <h2 id="assessment-card" className="mt-4 text-[24px] font-semibold tracking-[-0.02em] text-ink">
-              {started ? 'Continue your assessment' : 'Start your assessment'}
-            </h2>
-            <p className="mt-2 text-[15px] leading-relaxed text-muted">
-              Fifteen questions about your interests, strengths, and how you prefer to work. You can pause and come
-              back at any point.
-            </p>
-            <p className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-faint">
-              <ClockIcon className="h-4 w-4" aria-hidden="true" />
-              About 10 minutes
-            </p>
-          </div>
-
-          <div className="w-full max-w-xs shrink-0">
-            <Progress value={answeredCount} total={total} label={`${answeredCount} of ${total} answered`} />
-            <div className="mt-5">
-              <Button to="/app/assessment/intro" full size="lg">
-                {started ? 'Continue assessment' : 'Start assessment'}
-                <ArrowRightIcon className="h-[18px] w-[18px]" aria-hidden="true" />
-              </Button>
+      {notices.length > 0 && (
+        <div className="mt-6">
+          <div className="rounded-lg border border-brand-edge bg-brand-soft px-4 py-3.5">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-brand-dark">Notices for you</p>
+              <button type="button" onClick={markNoticesRead} className="text-[11.5px] font-medium text-brand-dark underline-offset-2 hover:underline">
+                Mark all as read
+              </button>
             </div>
+            <ul className="mt-2 space-y-1.5">
+              {notices.map((notice) => (
+                <li key={notice.id} className="text-[12.5px] leading-relaxed text-brand-dark">
+                  <strong className="font-semibold">{notice.title}.</strong> {notice.body}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </section>
+      )}
 
-      <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_1fr]">
-        {shortcuts.map(({ to, icon: Icon, title, body }) =>
-        <Link
-          key={to}
-          to={to}
-          className="group flex flex-col rounded-lg border border-line bg-surface p-6 transition-colors duration-150 ease-out hover:border-ink/25">
-          
-            <Icon className="h-5 w-5 text-brand" aria-hidden="true" />
-            <h2 className="mt-3.5 text-[17px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{body}</p>
-            <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-medium text-brand">
-              Open
-              <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
-            </span>
-          </Link>
-        )}
+      {data.assessment.inProgress && (
+        <div className="mt-6">
+          <Alert tone="info" title="You have an assessment in progress">
+            Started {formatDate(data.assessment.inProgress.startedAt, true)}. Your saved answers will be waiting when
+            you return.{' '}
+            <Link to={`/app/assessment/${data.assessment.inProgress.id}/q/1`} className="font-semibold underline">
+              Continue it now
+            </Link>
+            .
+          </Alert>
+        </div>
+      )}
+
+      {data.reassessment?.due && (
+        <div className="mt-4">
+          <Alert tone="warn" title="A follow-up assessment is recommended">
+            Your programme started on {formatDate(data.program?.createdAt)}. A post-assessment now would show whether
+            anything has changed. It is optional — you decide when you are ready.{' '}
+            <Link to="/app/post-assessment" className="font-semibold underline">
+              See the follow-up assessment
+            </Link>
+            .
+          </Alert>
+        </div>
+      )}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Assessments completed" value={data.assessment.preSubmitted + data.assessment.postSubmitted} note={`${data.assessment.preSubmitted} pre · ${data.assessment.postSubmitted} post`} />
+        <Stat label="Strand selected" value={data.selectedStrand ? data.selectedStrand.toUpperCase() : '—'} note={data.selectedStrand ? 'Your choice, changeable any time' : 'Choose after reviewing results'} />
+        <Stat label="Programme progress" value={data.program ? `${data.program.progress.percent}%` : '—'} note={data.program ? `${data.program.progress.completed} of ${data.program.progress.total} activities` : 'No programme yet'} />
+        <Stat label="Support requests" value={data.openTickets} note="Open or in review" />
       </div>
 
-      <section className="mt-10" aria-labelledby="previous">
-        <div className="flex items-end justify-between gap-4">
-          <h2 id="previous" className="text-[19px] font-semibold tracking-[-0.015em] text-ink">
-            Previous results
-          </h2>
-          <Link to="/app/results" className="text-sm font-medium text-brand hover:text-brand-dark">
-            View saved result
-          </Link>
-        </div>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <Card className="p-6">
+          {latest ? (
+            <>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[18px] font-semibold tracking-[-0.015em] text-ink">Your latest guidance</h2>
+                  <p className="mt-1 text-[13px] text-muted">
+                    {latest.type === 'post' ? 'Post-assessment' : 'Pre-assessment'} · {formatDate(latest.submittedAt)} ·
+                    questionnaire v{latest.questionnaireVersion ?? '—'}
+                  </p>
+                </div>
+                <Chip tone="brand">Algorithm {latest.algorithmVersion}</Chip>
+              </div>
 
-        <ul className="mt-4 divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
-          <li className="flex flex-wrap items-center justify-between gap-4 px-6 py-5">
-            <div>
-              <p className="text-[15px] font-medium text-ink">Assessment · 2 September 2026</p>
-              <p className="mt-1 text-[13px] text-muted">Strongest matches: ICT, STEM, ABM</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge tone="success">Completed</Badge>
-              <Button to="/app/results" variant="secondary" size="sm">
-                View
-              </Button>
-            </div>
-          </li>
-          <li className="px-6 py-5 text-[14px] text-faint">
-            Results are kept so you can compare how your answers change over time.
-          </li>
-        </ul>
-      </section>
+              <ol className="mt-5 space-y-4">
+                {topThree.map((strand) => (
+                  <li key={strand.slug}>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <p className="text-[14px] font-medium text-ink">
+                        <span className="mr-2 text-faint">#{strand.rank}</span>
+                        {strand.code}
+                      </p>
+                      <p className="text-[13px] tabular-nums text-muted">
+                        {strand.score.toFixed(1)} on the alignment index
+                      </p>
+                    </div>
+                    <div className="mt-1.5">
+                      <ScoreBar percent={strand.score} label={`${strand.code} alignment ${strand.score.toFixed(1)}`} />
+                    </div>
+                  </li>
+                ))}
+              </ol>
 
-      <section className="mt-10" aria-labelledby="quick-strands">
-        <h2 id="quick-strands" className="text-[19px] font-semibold tracking-[-0.015em] text-ink">
-          Jump to a strand
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {gridStrands.map((s) =>
-          <Link
-            key={s.slug}
-            to={`/app/strands/${s.slug}`}
-            className="rounded-full border border-line bg-surface px-4 py-2 text-[13px] font-medium text-ink transition-colors duration-150 ease-out hover:border-brand hover:text-brand">
-            
-              {s.code}
-            </Link>
+              <div className="mt-6 flex flex-wrap gap-2 border-t border-line pt-5">
+                <Button to="/app/results" size="sm">
+                  Full results and explanations
+                </Button>
+                <Button to="/app/strands/compare" variant="secondary" size="sm">
+                  Compare strands
+                </Button>
+                <Button to="/app/history" variant="secondary" size="sm">
+                  Assessment history
+                </Button>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              icon={ClipboardListIcon}
+              title="No completed assessment yet"
+              description="The pre-assessment takes about ten minutes. It asks about interests, strengths, and how you prefer to work — there are no right answers."
+              action={
+                <Button to="/app/assessment">
+                  Start the assessment
+                  <ArrowRightIcon className="h-4 w-4" aria-hidden />
+                </Button>
+              }
+            />
           )}
-        </div>
-      </section>
-    </div>);
+        </Card>
 
+        <div className="space-y-4">
+          <Card className="p-6">
+            <div className="flex items-center gap-2">
+              <TargetIcon className="h-4 w-4 text-brand" aria-hidden />
+              <h2 className="text-[15px] font-semibold text-ink">Your strand choice</h2>
+            </div>
+            {data.selectedStrand ? (
+              <>
+                <p className="mt-3 text-[26px] font-semibold tracking-[-0.02em] text-ink">{data.selectedStrand.toUpperCase()}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted">
+                  Selecting a strand never locks you in. You can change it after any assessment, and STRANDPATH will
+                  rebuild your preparation programme around the new choice.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button to="/app/program" size="sm" variant="secondary">
+                    Open programme
+                  </Button>
+                  {data.program && (
+                    <Button to={`/app/strands/${data.program.strandSlug}`} size="sm" variant="ghost">
+                      Strand details
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-3 text-[13px] leading-relaxed text-muted">
+                  You have not chosen a strand yet. Review your results, explore alternatives, and choose when you are
+                  ready.
+                </p>
+                <div className="mt-4">
+                  <Button to={latest ? '/app/results' : '/app/strands'} size="sm" variant="secondary">
+                    {latest ? 'Choose a strand' : 'Explore strands'}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-2">
+              <SparklesIcon className="h-4 w-4 text-brand" aria-hidden />
+              <h2 className="text-[15px] font-semibold text-ink">Improvement programme</h2>
+            </div>
+            {data.program ? (
+              <>
+                <p className="mt-3 text-[14px] font-medium text-ink">{data.program.name}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-muted">{data.program.goal}</p>
+                <div className="mt-3">
+                  <ScoreBar percent={data.program.progress.percent} tone="success" label="Programme progress" />
+                </div>
+                <p className="mt-2 text-[12px] text-muted">
+                  {data.program.progress.completed} of {data.program.progress.total} activities complete
+                </p>
+                <div className="mt-3">
+                  <Button to="/app/program" size="sm" variant="secondary">
+                    Continue programme
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-3 text-[13px] leading-relaxed text-muted">
+                  Programmes are generated from your assessment results and your chosen strand, with activities aimed at
+                  the areas that scored lower.
+                </p>
+                <div className="mt-3">
+                  <Button to="/app/program" size="sm" variant="secondary">
+                    {data.selectedStrand ? 'Generate my programme' : 'See how programmes work'}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+
+          <Card className="p-6">
+            <div className="flex items-center gap-2">
+              <MessageCircleIcon className="h-4 w-4 text-brand" aria-hidden />
+              <h2 className="text-[15px] font-semibold text-ink">Guidance and help</h2>
+            </div>
+            <div className="mt-3 space-y-2 text-[13px]">
+              <Link to="/app/coach" className="flex items-center justify-between rounded-md border border-line px-3 py-2 hover:border-brand">
+                <span className="text-ink">Ask the Virtual Coach</span>
+                <span className="text-[11px] text-faint">{data.ai.available ? 'Available' : 'Not configured'}</span>
+              </Link>
+              <Link to="/app/support" className="flex items-center justify-between rounded-md border border-line px-3 py-2 hover:border-brand">
+                <span className="text-ink">Support Agent and requests</span>
+                <ArrowRightIcon className="h-3.5 w-3.5 text-faint" aria-hidden />
+              </Link>
+              <Link to="/app/progress" className="flex items-center justify-between rounded-md border border-line px-3 py-2 hover:border-brand">
+                <span className="text-ink">Progress and reassessment</span>
+                <BarChart3Icon className="h-3.5 w-3.5 text-faint" aria-hidden />
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {latest?.type === 'pre' && data.assessment.latestPost && (
+        <div className="mt-6">
+          <Alert tone="success" title="You have completed a follow-up assessment">
+            Compare it with your baseline on the{' '}
+            <Link to={`/app/results/${data.assessment.latestPost.id}`} className="font-semibold underline">
+              post-assessment results
+            </Link>
+            .
+          </Alert>
+        </div>
+      )}
+    </div>
+  );
 }
