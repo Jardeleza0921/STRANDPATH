@@ -504,7 +504,7 @@ export function createApp({ db, distDir = resolve('dist'), serveClient = true, m
         fields.push({ strandSlug: strand.slug, strandCode: strand.code, field, careers: strand.careerAreas });
       }
     }
-    return { body: { fields, strands: strands.map((s) => ({ slug: s.slug, code: s.code, name: s.name, track: s.track })) } };
+    return { body: { fields, strands } };
   });
 
   router.get('/api/questionnaire/active', async () => {

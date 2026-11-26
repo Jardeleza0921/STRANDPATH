@@ -34,6 +34,9 @@ export function Pathways() {
 
   if (error) return <div className="px-4 py-10 sm:px-8"><ErrorState message={error} /></div>;
   if (!strands) return <LoadingBlock label="Loading pathways…" />;
+  if (strands.length === 0) {
+    return <div className="px-4 py-10 sm:px-8"><ErrorState message="No strands are available yet." /></div>;
+  }
 
   const activeSlug = params.get('strand') ?? strands[0]?.slug ?? '';
   const active = strands.find((s) => s.slug === activeSlug) ?? strands[0];
@@ -94,7 +97,7 @@ export function Pathways() {
           <div className="mt-6 border-t border-line pt-4">
             <p className="text-[12px] uppercase tracking-[0.05em] text-faint">Before you plan around this strand</p>
             <ul className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-muted">
-              {active.considerations.map((item) => (
+              {(active.considerations ?? []).map((item) => (
                 <li key={item} className="flex gap-2">
                   <span className="mt-[8px] h-1 w-1 shrink-0 rounded-full bg-faint" aria-hidden />
                   {item}
