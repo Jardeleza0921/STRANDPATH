@@ -28,9 +28,10 @@ The optional Node/SQLite backend is retained for schools that need shared accoun
 | Area | Status |
 | --- | --- |
 | Static student build (register, sign in, assessment, results, programme, progress, support, Strand Assistance) | **Implemented**; typecheck, production build and guidance self-test pass |
-| Strand Assistance knowledge base and engine | **Implemented and tested** — 158 assertions over 12 topics, 11 FAQ entries and every supported example question |
+| Strand Assistance knowledge base and engine | **Implemented and tested** — 199 assertions over 15 topics, 11 FAQ entries, adaptive answers and every supported example question |
+| Development pathways, readiness and progression | **Implemented and tested** — 253 assertions across seven strand pathways |
 | Local account storage (PBKDF2-hashed passwords, localStorage records) | **Implemented**; not a secure multi-user authentication system (see §7) |
-| GitHub Pages workflow | **Implemented**; the first real Pages deployment must be run from GitHub Actions |
+| GitHub Pages deployment | **Live** at https://jardeleza0921.github.io/STRANDPATH/ via the workflow on `main` |
 | Email verification, password reset by email, Google sign-in | **Not available in the static build**; available in the optional backend |
 | Administrator dashboard, cross-device records, staff roles | **Not available in the static build**; available in the optional backend |
 | Educational (psychometric) validation | **Not done** — the questionnaire is a technical draft, not a validated instrument |
@@ -79,7 +80,7 @@ The static build needs **no environment variables**. Open the site, create a stu
 1. Push the repository to GitHub.
 2. Open **Settings → Pages** and set **Source** to **GitHub Actions**.
 3. Push to `main` (or run **Actions → Deploy STRANDPATH to GitHub Pages → Run workflow**).
-4. The site appears at `https://<user>.github.io/<repository>/`.
+4. The site appears at `https://<user>.github.io/<repository>/`. This repository is deployed at **https://jardeleza0921.github.io/STRANDPATH/**.
 
 The workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) installs with `npm ci`, runs the typecheck, the guidance and development self-tests, builds with `VITE_BASE_PATH=/<repository>/`, copies `index.html` to `404.html`, adds `.nojekyll`, and deploys `dist/` using the official Pages actions. No secrets are needed.
 
@@ -218,7 +219,7 @@ docs/                    static deployment and Strand Assistance notes
 | `npm test` (optional backend) | 30 tests pass |
 | Production guidance bundle | Contains no AI provider code or API keys |
 | Browser smoke test (Chromium, 1440×900 and 390×844) | Register → 20-item assessment → submitted results → grounded Strand Assistance answers → unsupported-question fallback; no console errors and no horizontal overflow |
-| GitHub Actions deployment | Not executed from this environment; the workflow is ready and requires Pages to be enabled |
+| GitHub Actions deployment | **Success** on `main`; the live page serves the built bundle from `/STRANDPATH/assets/` with no console errors |
 
 Not verified here: real GitHub Pages hosting, browsers other than Chromium, physical devices, and the optional backend's SMTP/Google flows without credentials. The mobile and desktop checks used responsive viewport resizing, not real phones.
 
