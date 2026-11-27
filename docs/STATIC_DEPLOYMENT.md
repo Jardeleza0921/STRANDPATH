@@ -37,9 +37,7 @@ The workflow derives the repository name automatically. If a build is made witho
 
 ## Routing and refresh
 
-The static build uses `HashRouter` (see `src/lib/mode.ts`). Every route is a fragment (`/#/app/results`), so GitHub Pages only serves `index.html`; refreshing a nested route cannot produce a 404. The build still copies `index.html` to `404.html` so a direct hit on a path without a hash (a mistyped or shared link) loads the application instead of GitHub's 404 page.
-
-The optional server build (`VITE_API_MODE=server`) uses `BrowserRouter`, because that deployment serves the SPA for every path.
+The site uses `HashRouter` (see `src/lib/mode.ts`). Every route is a fragment (`/#/app/results`), so GitHub Pages only serves `index.html`; refreshing a nested route cannot produce a 404. The build still copies `index.html` to `404.html` so a direct hit on a path without a hash (a mistyped or shared link) loads the application instead of GitHub's 404 page.
 
 ## Caching
 
@@ -51,25 +49,18 @@ GitHub Pages serves hashed files from `dist/assets/` with long cache lifetimes a
 - Clearing site data deletes everything stored there.
 - The app exposes export (Profile) and account deletion (Settings).
 - Support requests are private local notes in the static build; they are not delivered to the school.
-- Administrator, staff, email-verification and Google-sign-in features are not routed in the static build and their APIs return a clear "needs the optional server" error.
+- Administrator, staff, email-verification and Google-sign-in features are not part of the published static application.
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Blank page, assets 404 | Wrong base path | Rebuild with `VITE_BASE_PATH=/<repository>/` |
-| 404 on refresh of `/app/...` | A `BrowserRouter` build was deployed | Use the default static build (hash routing) |
+| 404 on refresh of `/app/...` | A non-hash routing build was deployed | Use the default build (hash routing) |
 | "Strand Assistance could not open" | Local storage unavailable (private mode, disabled storage) | Use a normal window; records cannot persist in private mode |
 | Account disappears | Different browser/device or site data cleared | Expected in a static build; export records beforehand |
 | Pages deployment skipped | Pages source not set to GitHub Actions, or environment approval pending | Set the source and approve the environment |
 
-## Optional backend build
+## One deployment target
 
-If the school needs verified accounts, shared records, staff oversight or email, deploy the Node/SQLite backend and build the client against it:
-
-```bash
-VITE_API_MODE=server npm run build
-npm start
-```
-
-That build uses `BrowserRouter` and the `/api/*` routes. See the main README §8 and the deployment files (`Dockerfile`, `render.yaml`, `railway.json`, `netlify.toml`). Do not point the static GitHub Pages build at a backend: it intentionally has no API base URL.
+GitHub Pages is the only deployment target. The repository contains no container, Render, Railway or Netlify configuration, and the build needs no API base URL, server, database or key.

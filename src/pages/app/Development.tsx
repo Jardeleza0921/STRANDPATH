@@ -366,10 +366,7 @@ export function Development() {
                     <ul className="mt-3 space-y-2 border-t border-line pt-3">
                       {stage.stage.modules.map((module) => (
                         <li key={module.title} className="rounded-md border border-line px-3 py-2.5">
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <p className="text-[13px] font-medium text-ink">{module.title}</p>
-                            <span className="text-[11px] text-faint">{module.minutes} min</span>
-                          </div>
+                          <p className="text-[13px] font-medium text-ink">{module.title}</p>
                           <p className="mt-0.5 text-[12px] leading-relaxed text-muted">{module.detail}</p>
                         </li>
                       ))}

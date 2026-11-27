@@ -121,7 +121,7 @@ export function Register() {
     <AuthFrame
       eyebrow="Student registration"
       title="Start with a clearer picture of yourself."
-      description="About ten minutes, no right answers, and nothing is timed. You can pause at any question and come back later."
+      description="No right answers, and nothing is timed. You can pause at any question and come back later."
       wide
     >
       <h2 className="font-display text-[24px] font-bold text-ink">Create your student account</h2>

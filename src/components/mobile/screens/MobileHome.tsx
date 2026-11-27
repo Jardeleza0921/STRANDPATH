@@ -30,7 +30,7 @@ export function MobileHome({ go }: ScreenProps) {
             Continue your assessment
           </h2>
           <p className="mt-1.5 text-[14px] leading-relaxed text-brand-dark/80">
-            6 of 15 answered · about 6 minutes left
+            6 of 15 answered
           </p>
           <div className="mt-4">
             <Progress value={6} total={15} compact />

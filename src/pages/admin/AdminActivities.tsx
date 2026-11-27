@@ -141,7 +141,7 @@ export function AdminActivities() {
                     <td className="px-3 py-2.5">
                       <p className="font-medium text-ink">{activity.title}</p>
                       <p className="text-[11px] text-muted">
-                        {activity.tier} · {activity.minutes} min {activity.active ? '' : '· inactive'}
+                        {activity.tier} {activity.active ? '' : '· inactive'}
                       </p>
                     </td>
                     <td className="px-3 py-2.5 text-muted">{activity.targetCategoryLabel}</td>
@@ -186,9 +186,6 @@ export function AdminActivities() {
               </Field>
               <Field label="Difficulty" htmlFor="a-difficulty">
                 <TextInput id="a-difficulty" type="number" min={1} max={3} value={form.difficulty} onChange={(e) => setForm({ ...form, difficulty: Number(e.target.value) })} />
-              </Field>
-              <Field label="Minutes" htmlFor="a-minutes">
-                <TextInput id="a-minutes" type="number" min={5} max={240} value={form.minutes} onChange={(e) => setForm({ ...form, minutes: Number(e.target.value) })} />
               </Field>
             </div>
             <Field label="Objectives (one per line)" htmlFor="a-objectives">

@@ -265,7 +265,7 @@ export function Dashboard() {
             <EmptyState
               icon={ClipboardListIcon}
               title="No completed assessment yet"
-              description="The pre-assessment takes about ten minutes. It asks about interests, strengths, and how you prefer to work — there are no right answers."
+              description="The pre-assessment asks about interests, strengths, and how you prefer to work — there are no right answers, and nothing is timed."
               action={
                 <Button to="/app/assessment">
                   Start the assessment

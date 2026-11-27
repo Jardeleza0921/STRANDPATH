@@ -5,7 +5,7 @@ import { ScreenProps } from '../nav';
 
 const points = [
 { icon: ListChecksIcon, t: '15 questions', d: 'Interests, strengths, work style, and preferences.' },
-{ icon: ClockIcon, t: 'About 10 minutes', d: 'Pause any time — your answers are kept.' },
+{ icon: ClockIcon, t: 'Go at your own pace', d: 'Pause any time — your answers are kept.' },
 { icon: ShieldCheckIcon, t: 'No right answers', d: 'Nothing here is scored, ranked, or graded.' }];
 
 

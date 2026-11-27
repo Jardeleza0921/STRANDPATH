@@ -105,7 +105,7 @@ function buildWhy(context: GuidanceContext): GuidanceAnswer {
       title: 'There is no scored assessment to explain yet',
       paragraphs: [
         'I can only explain a recommendation that actually exists. You have not submitted an assessment in this browser yet, so there is no ranking for me to read.',
-        'The pre-assessment takes about ten minutes. When you finish it, I can point to the exact dimensions and answers behind each strand score.'
+        'The pre-assessment is the baseline. When you finish it, I can point to the exact dimensions and answers behind each strand score.'
       ],
       suggestions: ['What strand is suitable for me?', 'How does STRANDPATH compute my recommendation?', 'What should I do next?'],
       sources: [KB_SOURCE],
@@ -615,7 +615,7 @@ function buildSkills(context: GuidanceContext): GuidanceAnswer {
     if (next) {
       points.push({
         label: 'Already in your plan',
-        text: `${next.title} targets ${next.category} and takes about ${next.minutes} minutes. It is the next unfinished activity in ${context.programme.name}.`
+        text: `${next.title} targets ${next.category}. It is the next unfinished activity in ${context.programme.name}.`
       });
     }
   }
@@ -705,7 +705,7 @@ function buildNextSteps(context: GuidanceContext): GuidanceAnswer {
     title = 'Start with the pre-assessment';
     paragraphs = [
       'There is no submitted assessment in this browser yet. The pre-assessment is the baseline for everything else: strand alignment, your improvement programme and any later comparison.',
-      'It takes about ten to twelve minutes and asks about interests, strengths and how you prefer to work. There are no right answers.'
+      'It asks about interests, strengths and how you prefer to work. There are no right answers, and nothing is timed.'
     ];
     points.push(
       { label: '1. Take the pre-assessment', text: 'Open “Let’s Get Started” in the student menu.' },
@@ -740,7 +740,7 @@ function buildNextSteps(context: GuidanceContext): GuidanceAnswer {
     paragraphs = next
       ? [
           `${programme.name} is ${programme.progress.percent}% complete (${programme.progress.completed} of ${programme.progress.total} activities).`,
-          `Next is “${next.title}”, about ${next.minutes} minutes, targeting ${next.category}. Finish it and record a short reflection.`
+          `Next is “${next.title}”, targeting ${next.category}. Finish it and record a short reflection.`
         ]
       : [
           `All ${programme.progress.total} activities in ${programme.name} are recorded as complete.`,
@@ -794,7 +794,7 @@ function buildPlan(context: GuidanceContext): GuidanceAnswer {
     ],
     points: programme.activities.slice(0, 5).map((activity) => ({
       label: `${activity.status === 'completed' ? 'Done' : activity.status === 'in_progress' ? 'In progress' : 'Not started'} · ${activity.title}`,
-      text: `${activity.category}, about ${activity.minutes} minutes.`
+      text: `${activity.category}.`
     })),
     suggestions: ['What skills should I improve?', 'What should I do next?', 'What other options do I have?'],
     sources: [KB_SOURCE],
@@ -903,7 +903,7 @@ function practiceSuggestion(label: string, step = 0) {
   const category = developmentCategory(label);
   const options = activitiesForCategory(category, 2);
   const activity = options[step % Math.max(1, options.length)];
-  return activity ? `${activity.title} (${activity.minutes} minutes)` : null;
+  return activity ? activity.title : null;
 }
 
 function buildReadiness(context: GuidanceContext): GuidanceAnswer {
@@ -991,12 +991,12 @@ function buildStruggle(context: GuidanceContext, repeat: number): GuidanceAnswer
       title: `A different way to practise ${label.toLowerCase()}`,
       paragraphs: [
         `Repeating the same explanation is not working, so let's change the approach rather than the effort. This is about the method, not about you being unable to learn it.`,
-        'Try working backwards from a finished example, then rebuild it without looking. If that is still hard, shrink the task until it takes ten minutes and finish that smaller piece.'
+        'Try working backwards from a finished example, then rebuild it without looking. If that is still hard, shrink the task until it is one small, finishable piece.'
       ],
       points: [
         { label: '1. Find a worked example', text: `Take one solved example of ${label.toLowerCase()} and label every step in your own words.` },
         { label: '2. Rebuild it from memory', text: 'Close the example and reproduce it. Where you stall is the exact step to practise.' },
-        { label: '3. Do one small piece', text: practice ? `Try “${practice}” and stop after the first part if you need to.` : 'Do ten minutes, then write one line about what blocked you.' }
+        { label: '3. Do one small piece', text: practice ? `Try “${practice}” and stop after the first part if you need to.` : 'Do the first small part, then write one line about what blocked you.' }
       ],
       suggestions: [
         'What skills should I improve?',
@@ -1110,7 +1110,7 @@ function buildDiscouraged(context: GuidanceContext): GuidanceAnswer {
     points: [
       next
         ? { label: 'One small step', text: `${next.label}. ${next.detail}` }
-        : { label: 'One small step', text: 'Open your plan and do the first unfinished activity for ten minutes. You can stop after that.' },
+        : { label: 'One small step', text: 'Open your plan and do the first unfinished activity. You can stop after the first small part.' },
       { label: 'Keep the evidence', text: 'Write one sentence about what you tried. Progress records are for you, not for a grade.' },
       strand
         ? { label: 'Your choice still stands', text: `You chose ${strand.code} for a reason. The pathway exists to build the skills, not to test whether you already have them.` }

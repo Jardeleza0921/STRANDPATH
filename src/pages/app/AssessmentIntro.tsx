@@ -65,11 +65,10 @@ export function AssessmentIntro() {
         </div>
       )}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {[
           { label: 'Questions', value: meta.questions.length },
-          { label: 'Sections', value: meta.sections.length },
-          { label: 'Estimated time', value: '10–12 min' }
+          { label: 'Sections', value: meta.sections.length }
         ].map((fact) => (
           <Card key={fact.label} className="px-5 py-4">
             <p className="text-[12px] uppercase tracking-[0.05em] text-faint">{fact.label}</p>

@@ -64,7 +64,7 @@ export function Landing() {
             </div>
 
             <p className="mt-6 text-[13px] text-faint">
-              Free for students · No score, no ranking · Takes about 10 minutes
+              Free for students · No score, no ranking · Saved in your browser
             </p>
           </div>
 
@@ -252,7 +252,7 @@ export function Landing() {
               Ready to see what may fit you?
             </h2>
             <p className="mt-3 text-[16px] leading-relaxed text-muted">
-              Around 10 minutes, about twenty questions, and a set of matches you can talk through with someone you trust.
+              About twenty questions, and a set of matches you can talk through with someone you trust.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

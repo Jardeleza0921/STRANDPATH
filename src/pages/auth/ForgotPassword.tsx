@@ -52,7 +52,7 @@ export function ForgotPassword() {
           <div className="mt-4">
             <Alert tone="success">
               Email is configured on this server. If the address belongs to an account, a six-digit code and a
-              one-time link were sent. They expire in a few minutes.
+              one-time link were sent. They expire shortly after they are requested.
             </Alert>
           </div>
         ) : (

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ClockIcon, SparklesIcon } from 'lucide-react';
+import { ArrowRightIcon, SparklesIcon } from 'lucide-react';
 import { api, errorMessage, formatDate } from '../../lib/api';
 import { DashboardData, Programme } from '../../types/api';
 import { Button } from '../../components/ui/Button';
@@ -156,7 +156,7 @@ export function Program() {
           {next && (
             <div className="mt-5">
               <Alert tone="info" title="Next activity">
-                {next.title} · {next.minutes} minutes. <Link to={`/app/program/activities/${next.id}`} className="font-semibold underline">Open it</Link>.
+                {next.title}. <Link to={`/app/program/activities/${next.id}`} className="font-semibold underline">Open it</Link>.
               </Alert>
             </div>
           )}
@@ -179,9 +179,7 @@ export function Program() {
                           <span className="text-[11.5px] text-muted">{activity.targetCategoryLabel}</span>
                         </div>
                         <h3 className="mt-1.5 text-[15.5px] font-semibold text-ink">{activity.title}</h3>
-                        <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
-                          <ClockIcon className="h-3.5 w-3.5" aria-hidden />
-                          {activity.minutes} min ·{' '}
+                        <p className="mt-0.5 text-[12px] text-muted">
                           {activity.tier === 'foundation'
                             ? 'Foundation'
                             : activity.targetCategory === 'persistence'

@@ -102,7 +102,7 @@ export function Progress() {
           ) : (
             <div className="mt-6 rounded-lg border border-line bg-surface p-5 text-[13px] leading-relaxed text-muted">
               No post-assessment yet, so there is nothing to compare. The post-assessment becomes available once you
-              have a baseline; it takes about the same time as the first attempt.
+              have a baseline.
               <div className="mt-3">
                 <Button to="/app/post-assessment" size="sm" variant="secondary">See the post-assessment</Button>
               </div>

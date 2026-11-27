@@ -10,14 +10,13 @@
     "dev": "npx vite",
     "dev:api": "node --watch server/index.js",
     "build": "npx vite build",
-    "start": "node server/index.js",
     "seed": "node server/seed.js",
     "test": "node --test server/tests/*.test.js",
     "test:guidance": "node scripts/check-guidance.mjs",
     "test:development": "node scripts/check-development.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "preview": "node server/index.js"
+    "preview": "npx vite preview"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",

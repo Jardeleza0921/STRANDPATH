@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ChevronLeftIcon, ClockIcon, LifeBuoyIcon } from 'lucide-react';
+import { ChevronLeftIcon, LifeBuoyIcon } from 'lucide-react';
 import { api, errorMessage, formatDate } from '../../lib/api';
 import { ProgrammeActivity } from '../../types/api';
 import { Button } from '../../components/ui/Button';
@@ -23,7 +23,7 @@ export function ActivityPage() {
   const [reflection, setReflection] = useState('');
   const [responses, setResponses] = useState<Record<number, number>>({});
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ checkScore: number | null; checkFeedback: string | null; alternatives: { id: number; title: string; tier: string; minutes: number }[] } | null>(null);
+  const [result, setResult] = useState<{ checkScore: number | null; checkFeedback: string | null; alternatives: { id: number; title: string; tier: string }[] } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [alternativeMessage, setAlternativeMessage] = useState<string | null>(null);
 
@@ -92,7 +92,6 @@ export function ActivityPage() {
         title={activity.title}
         description={
           <span className="flex flex-wrap items-center gap-2">
-            <ClockIcon className="h-3.5 w-3.5" aria-hidden /> {activity.minutes} minutes
             {completed && <Chip tone="success">Completed {formatDate(activity.completedAt)}</Chip>}
             {!completed && activity.status === 'in_progress' && <Chip tone="brand">In progress</Chip>}
           </span>
@@ -200,7 +199,7 @@ export function ActivityPage() {
               <ul className="mt-2 space-y-1.5 text-[13px] text-muted">
                 {result.alternatives.map((alternative) => (
                   <li key={alternative.id}>
-                    {alternative.title} · {alternative.minutes} min ({alternative.tier})
+                    {alternative.title} ({alternative.tier})
                   </li>
                 ))}
               </ul>
