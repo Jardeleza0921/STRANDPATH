@@ -10,8 +10,8 @@ import { createApp } from '../app.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'strandpath-auth-'));
 const db = openDb(join(dir, 'test.db'));
-const ADMIN = { adminName: 'J. Jardeleza', adminEmail: 'jjardeleza@example.edu.ph', adminPassword: 'Admin#2026aa' };
-const STUDENT = { studentName: 'Klight', studentEmail: 'klight@example.com', studentPassword: 'Klight#2026aa' };
+const ADMIN = { adminName: 'admin', adminEmail: 'admin@example.edu.ph', adminPassword: 'admin123' };
+const STUDENT = { studentName: 'student', studentEmail: 'student@example.com', studentPassword: 'student123' };
 seed(db, { ...ADMIN, ...STUDENT });
 
 const outbox = [];
@@ -83,7 +83,7 @@ test('provisioning creates the requested accounts once and never stores plaintex
   assert.ok(student, 'student exists');
   assert.equal(admin.role, 'admin');
   assert.equal(student.role, 'student');
-  assert.equal(student.name, 'Klight');
+  assert.equal(student.name, 'student');
   assert.match(admin.password_hash, /^scrypt\$/);
   assert.ok(!admin.password_hash.includes(ADMIN.adminPassword));
   assert.ok(admin.email_verified_at);

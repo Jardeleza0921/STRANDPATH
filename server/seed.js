@@ -4,9 +4,9 @@ import { hashPassword, passwordProblems } from './auth.js';
 
 /** Accounts requested for first secure initialization. */
 const INITIAL_ADMIN_EMAIL = 'jjardeleza@paterostechnologicalcollege.edu.ph';
-const INITIAL_ADMIN_NAME = 'J. Jardeleza';
-const INITIAL_STUDENT_NAME = 'Klight';
-const INITIAL_STUDENT_EMAIL = 'jaruiorijardeleza@gmail.com';
+const INITIAL_ADMIN_NAME = 'admin';
+const INITIAL_STUDENT_NAME = 'student';
+const INITIAL_STUDENT_EMAIL = 'student@example.com';
 
 function seedQuestionnaire(db) {
   if (get(db, 'SELECT id FROM questionnaires WHERE version = ?', QUESTIONNAIRE_V1.version)) return;
