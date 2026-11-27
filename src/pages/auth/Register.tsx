@@ -9,6 +9,7 @@ import { PasswordInput, PasswordStrength } from '../../components/auth/PasswordI
 import { GoogleButton } from '../../components/auth/GoogleButton';
 import { errorMessage, api } from '../../lib/api';
 import { VerificationState } from '../../types/api';
+import { isStaticMode } from '../../lib/mode';
 
 export function Register() {
   const { register } = useAuth();
@@ -81,7 +82,7 @@ export function Register() {
         <h2 className="mt-4 font-display text-[24px] font-bold text-ink">You're in, {form.name.split(' ')[0]}.</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted">
           We created your student account and signed you in. Your answers save as you go, so you can start the
-          assessment now and confirm your email whenever it arrives.
+          assessment now. Your records stay in this browser.
         </p>
 
         <div className="mt-4 space-y-3">
@@ -91,9 +92,9 @@ export function Register() {
               hour.
             </Alert>
           ) : (
-            <Alert tone="warn" title="Email delivery is not available yet">
+            <Alert tone="info" title={isStaticMode() ? 'No email needed for a local account' : 'Email delivery is not available yet'}>
               {verification.note ??
-                'This server has no SMTP configuration, so no confirmation email was actually sent. Ask your school administrator to configure email, then use the resend button below.'}
+                'This build cannot send email, so no confirmation message was sent. Your account is ready to use on this device.'}
             </Alert>
           )}
           {resendMessage && <Alert tone="info">{resendMessage}</Alert>}
@@ -207,24 +208,37 @@ export function Register() {
             required
           />
           <span>
-            I understand that STRANDPATH stores my profile, assessment answers and results to provide guidance, and
-            that authorised school guidance staff may review them to support me. I can export or delete my data from
-            Settings. This consent is recorded with my account, in line with the Philippine Data Privacy Act (RA
-            10173).
+            I understand that STRANDPATH stores my profile, assessment answers and results to provide guidance. I can
+            export or delete my data from Settings. This consent is recorded with my account, in line with the
+            Philippine Data Privacy Act (RA 10173).{' '}
+            {isStaticMode()
+              ? 'In this browser-only build, no school staff can access these records.'
+              : 'Authorised school guidance staff may review them to support me.'}
           </span>
         </label>
+
+        {isStaticMode() && (
+          <Alert tone="info" title="This account lives in this browser">
+            Your account, answers and results are stored only on this device. There is no school database, cross-device
+            sign-in or email recovery. You can export your records from the Profile page.
+          </Alert>
+        )}
 
         <Button type="submit" full size="lg" disabled={busy || !form.consent || form.password !== form.confirmPassword}>
           {busy ? 'Creating account…' : 'Create account'}
           {!busy && <ArrowRightIcon className="h-4 w-4" aria-hidden />}
         </Button>
 
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-line" />
-          <span className="text-[11px] uppercase tracking-[0.08em] text-faint">or</span>
-          <span className="h-px flex-1 bg-line" />
-        </div>
-        <GoogleButton intent="signup" consent={form.consent} />
+        {!isStaticMode() && (
+          <>
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-line" />
+              <span className="text-[11px] uppercase tracking-[0.08em] text-faint">or</span>
+              <span className="h-px flex-1 bg-line" />
+            </div>
+            <GoogleButton intent="signup" consent={form.consent} />
+          </>
+        )}
       </form>
 
       <p className="mt-5 border-t border-line pt-4 text-[13px] text-muted">

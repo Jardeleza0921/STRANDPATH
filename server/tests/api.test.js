@@ -259,19 +259,6 @@ test('support tickets are created and only visible to their owner', async () => 
   assert.equal(foreign.status, 404);
 });
 
-test('AI endpoints report an honest unavailable state when unconfigured', async () => {
-  const c = client();
-  await c.request('POST', '/api/auth/login', { email: 'maria@example.com', password: 'Student#2026' });
-  const status = await c.request('GET', '/api/ai/status');
-  assert.equal(status.status, 200);
-  assert.equal(status.body.configured, false);
-  const chat = await c.request('POST', '/api/coach/messages', { message: 'Explain my results' });
-  assert.equal(chat.status, 503);
-  assert.equal(chat.body.error, 'AI_UNAVAILABLE');
-  const messages = await c.request('GET', '/api/coach/messages');
-  assert.equal(messages.body.messages.length, 0);
-});
-
 test('students cannot reach admin endpoints; admin can manage records', async () => {
   const student = client();
   const studentLogin = await student.request('POST', '/api/auth/login', { email: 'maria@example.com', password: 'Student#2026' });

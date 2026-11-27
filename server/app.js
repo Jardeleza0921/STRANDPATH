@@ -5,17 +5,14 @@ import { seed } from './seed.js';
 import { createRouter, HttpError } from './router.js';
 import { readJson, sendJson, sendError, securityHeaders, serveStatic } from './http.js';
 import { sessionUser, pruneSessions, readCookies, createRateLimiter } from './auth.js';
-import { scoreAssessment, compareResults, ALGORITHM_VERSION, labelFor } from './engine.js';
-import { CATEGORIES, CATEGORY_KEYS } from './content.js';
-import { aiStatus, aiConfig, complete, buildMessages } from './ai.js';
+import { scoreAssessment, compareResults, ALGORITHM_VERSION, labelFor } from '../shared/engine.js';
+import { CATEGORIES, CATEGORY_KEYS } from '../shared/content.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { createMailer } from './mailer.js';
 
 const VALIDATION_NOTICE =
   'This questionnaire is a technical draft reviewed for clarity and strand coverage. It has not been pilot-tested or statistically validated, so results should be read as structured guidance rather than a diagnosis or a prediction.';
-
-const MAX_AI_MESSAGE = 1200;
 
 /* ------------------------------------------------------------------ helpers */
 
@@ -319,103 +316,11 @@ function addTicketMessage(db, ticketId, authorId, authorRole, body) {
   run(db, 'UPDATE support_tickets SET updated_at = ? WHERE id = ?', now(), ticketId);
 }
 
-/* ------------------------------------------------------------ AI grounding */
-
-const SUPPORT_HELP = [
-  'Creating an account: Register with a name, email, password, grade level and school, then tick the privacy consent box.',
-  'Signing in: use the email and password you registered with. If sign-in fails, check the email spelling; passwords are case-sensitive.',
-  'Taking the assessment: Student → Assessment → Begin. Answers save automatically as you go, and you can leave and resume.',
-  'Viewing results: Student → Results opens your latest submitted assessment, with scores, explanations and evidence.',
-  'Retaking: Start a new assessment from the Assessment page. Previous attempts are preserved in History and are never overwritten.',
-  'Improvement programme: after selecting a strand on the Results page, open Programme and generate your plan.',
-  'Activities: open an activity, read the steps, write the reflection, then mark it complete. Some activities include a short knowledge check.',
-  'Progress: the Progress page compares submitted assessments and shows programme completion. It only shows recorded data.',
-  'Password: Settings → Change password. Account data questions should go to the school guidance office.',
-  'Support requests: Support → New request. Include what you expected, what happened, and the assessment or activity name.'
-].join('\n');
-
-function buildStudentContext(db, user, agent, question) {
-  if (agent === 'support') {
-    return `Student account: ${user.name} (role: ${user.role}).\nSTRANDPATH help topics:\n${SUPPORT_HELP}\nSupport email on file: ${getSetting(db, 'support.email', 'the school guidance office')}`;
-  }
-  const grounding = getSetting(db, 'ai.grounding', { strands: true, activities: true, assessment: true, careers: true });
-  const profile = getProfile(db, user.id);
-  const latest = latestSubmitted(db, user.id);
-  const result = latest ? parseJson(latest.result, null) : null;
-  const program = currentProgram(db, user.id);
-  const lines = [];
-
-  lines.push(`Student: ${user.name}. Profile: grade ${profile?.gradeLevel ?? 'not set'}, school ${profile?.school ?? 'not set'}.`);
-  if (profile?.interests) lines.push(`Self-described interests: ${profile.interests}`);
-  if (profile?.strengths) lines.push(`Self-described strengths: ${profile.strengths}`);
-  if (profile?.goals) lines.push(`Goals: ${profile.goals}`);
-  if (profile?.careerInterest) lines.push(`Career interest: ${profile.careerInterest}`);
-
-  if (result && grounding.assessment !== false) {
-    lines.push(
-      `Latest assessment: ${latest.type === 'post' ? 'post-assessment' : 'pre-assessment'} #${latest.id}, submitted ${latest.submitted_at}, questionnaire v${get(db, 'SELECT version FROM questionnaires WHERE id = ?', latest.questionnaire_id)?.version ?? '?'}, algorithm ${ALGORITHM_VERSION}.`
-    );
-    lines.push(
-      'Dimension scores (percent of attainable range in this attempt): ' +
-        result.categoryScores.map((c) => `${c.label} ${c.percent}`).join('; ')
-    );
-    lines.push(
-      'Ranked strand alignment: ' +
-        result.ranked
-          .slice(0, 3)
-          .map((r) => `#${r.rank} ${r.code} ${r.score} (${r.level})`)
-          .join('; ')
-    );
-    if (result.strengths?.length) lines.push(`Strengths identified: ${result.strengths.map((s) => s.label).join(', ')}`);
-    if (result.development?.length)
-      lines.push(`Development areas identified: ${result.development.map((s) => s.label).join(', ')}`);
-    if (latest.selected_strand) lines.push(`Student-selected strand: ${latest.selected_strand}`);
-  } else {
-    lines.push('The student has not completed an assessment yet. Do not reference scores.');
-  }
-
-  if (program) {
-    const payload = programPayload(db, program);
-    lines.push(
-      `Improvement programme: ${payload.name} for ${program.strand_slug}, status ${payload.status}, ${payload.progress.completed}/${payload.progress.total} activities complete.`
-    );
-    const next = payload.activities.find((a) => a.status !== 'completed');
-    if (next) lines.push(`Next activity: ${next.title} (${next.targetCategoryLabel}, about ${next.minutes} minutes).`);
-  }
-
-  if (grounding.strands !== false) {
-    const strands = activeStrands(db);
-    const mentioned = strands.filter((s) => question.toLowerCase().includes(s.code.toLowerCase()) || question.toLowerCase().includes(s.name.toLowerCase()));
-    const top = result?.ranked?.slice(0, 3).map((r) => r.slug) ?? [];
-    const chosen = strands.filter((s) => mentioned.includes(s) || top.includes(s.slug) || s.slug === latest?.selected_strand);
-    const relevant = (chosen.length ? chosen : strands).slice(0, 4);
-    for (const s of relevant) {
-      lines.push(
-        `Strand ${s.code} — ${s.name} (${s.track}): ${s.summary} Subjects: ${s.learn.join('; ')}. College fields: ${s.collegeFields.join(', ')}. Careers: ${s.careerAreas.join(', ')}. Considerations: ${s.considerations.join('; ')}.`
-      );
-    }
-  }
-
-  if (grounding.activities !== false && program) {
-    const payload = programPayload(db, program);
-    lines.push(
-      'Programme activity sequence: ' +
-        payload.activities.map((a) => `#${a.sequence} ${a.title} [${a.status}]`).join('; ')
-    );
-  }
-
-  lines.push(
-    'Limits: you cannot verify school-specific offerings, admission requirements or deadlines. Suggest checking with the school guidance office.'
-  );
-  return lines.join('\n');
-}
-
 /* --------------------------------------------------------------- app setup */
 
 export function createApp({ db, distDir = resolve('dist'), serveClient = true, mailer = createMailer() } = {}) {
   const router = createRouter();
   const limit = createRateLimiter();
-  const ai = aiConfig();
 
   router.get('/api/health', () => ({
     body: {
@@ -725,7 +630,6 @@ export function createApp({ db, distDir = resolve('dist'), serveClient = true, m
         program: program ? programPayload(db, program) : null,
         reassessment,
         openTickets: Number(openTickets?.n ?? 0),
-        ai: { ...aiStatus(), enabled: Boolean(getSetting(db, 'ai.enabled', true)) }
       }
     };
   }, { auth: true });
@@ -1060,87 +964,6 @@ export function createApp({ db, distDir = resolve('dist'), serveClient = true, m
     };
   }, { auth: true });
 
-  /* ------------------------------------------------------------------ AI */
-
-  router.get('/api/ai/status', async ({ user }) => {
-    const enabled = Boolean(getSetting(db, 'ai.enabled', true));
-    const status = aiStatus();
-    return {
-      body: {
-        ...status,
-        enabled,
-        available: status.configured && enabled,
-        grounding: getSetting(db, 'ai.grounding', {}),
-        remainingNote: 'AI is optional. Scores, recommendations, explanations and programmes are computed without it.',
-        user: user ? { id: user.id } : null
-      }
-    };
-  });
-
-  async function aiUnavailableReason() {
-    if (!ai.configured) return 'No AI model is configured on this server. Ask an administrator to set AI_API_KEY or OPENAI_API_KEY.';
-    if (!getSetting(db, 'ai.enabled', true)) return 'AI features are currently turned off by the administrator.';
-    return null;
-  }
-
-  for (const agent of ['coach', 'support']) {
-    router.get(`/api/${agent}/messages`, async ({ user }) => {
-      const rows = all(
-        db,
-        'SELECT id, role, content, created_at FROM ai_messages WHERE user_id = ? AND agent = ? ORDER BY created_at, id LIMIT 200',
-        user.id,
-        agent
-      );
-      return {
-        body: {
-          messages: rows.map((m) => ({ id: Number(m.id), role: m.role, content: m.content, createdAt: m.created_at })),
-          ai: { ...aiStatus(), available: ai.configured && Boolean(getSetting(db, 'ai.enabled', true)) }
-        }
-      };
-    }, { auth: true });
-
-    router.delete(`/api/${agent}/messages`, async ({ user }) => {
-      run(db, 'DELETE FROM ai_messages WHERE user_id = ? AND agent = ?', user.id, agent);
-      return { body: { ok: true } };
-    }, { auth: true });
-
-    router.post(`/api/${agent}/messages`, async ({ user, body, ip }) => {
-      const unavailable = await aiUnavailableReason();
-      if (unavailable) {
-        throw new HttpError(503, unavailable, { code: ai.configured ? 'AI_DISABLED' : 'AI_UNAVAILABLE' });
-      }
-      if (!limit(`ai:${user.id}:${ip}`, 30, 60 * 60 * 1000)) throw new HttpError(429, 'AI message limit reached. Try again later.');
-      const question = str(body.message, { min: 2, max: MAX_AI_MESSAGE, field: 'Message' });
-      const history = all(
-        db,
-        'SELECT role, content FROM ai_messages WHERE user_id = ? AND agent = ? ORDER BY created_at DESC, id DESC LIMIT 10',
-        user.id,
-        agent
-      ).reverse();
-      const context = buildStudentContext(db, user, agent, question);
-      const messages = buildMessages({ agent, question, context, history });
-      const reply = await complete(messages);
-      run(db, 'INSERT INTO ai_messages (user_id, agent, role, content, created_at) VALUES (?, ?, ?, ?, ?)', user.id, agent, 'user', question, now());
-      const { id } = run(
-        db,
-        'INSERT INTO ai_messages (user_id, agent, role, content, meta, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        user.id,
-        agent,
-        'assistant',
-        reply.content,
-        JSON.stringify({ model: reply.model }),
-        now()
-      );
-      return {
-        body: {
-          message: { id, role: 'assistant', content: reply.content, createdAt: now() },
-          model: reply.model,
-          note: 'Generated by the configured AI model from your STRANDPATH context. Verify school-specific details with your guidance office.'
-        }
-      };
-    }, { auth: true });
-  }
-
   /* -------------------------------------------------------------- support */
 
   router.get('/api/support/tickets', async ({ user }) => {
@@ -1187,7 +1010,7 @@ export function createApp({ db, distDir = resolve('dist'), serveClient = true, m
 
   /* ---------------------------------------------------------------- admin */
 
-  registerAdminRoutes(router, { db, audit, getSetting, setSetting, programPayload, assessmentSummary, supportTicketPayload, aiStatus });
+  registerAdminRoutes(router, { db, audit, getSetting, setSetting, programPayload, assessmentSummary, supportTicketPayload });
 
   /* ------------------------------------------------------------- dispatch */
 

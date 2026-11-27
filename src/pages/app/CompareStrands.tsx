@@ -110,7 +110,7 @@ export function CompareStrands() {
       <PageHeader
         eyebrow="Compare"
         title="Compare Strands Side by Side"
-        description="Choose up to three strands. Scores come from your latest submitted assessment; everything else comes from the strand records maintained by your school."
+        description="Choose up to three strands to compare their subjects, skills, college directions and your current match. Use it before you commit to a target; you can change your choice later."
         actions={<Button to="/app/results" variant="secondary" size="sm">Back to results</Button>}
       />
 

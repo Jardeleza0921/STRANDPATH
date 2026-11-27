@@ -57,7 +57,7 @@ export function Progress() {
       <PageHeader
         eyebrow="Progress"
         title="Track My Progress"
-        description="Only recorded data appears here: submitted assessments, activity completions, and the differences between attempts."
+        description="See what you have improved, what is still developing, and what to work on next. Only recorded evidence appears here: submitted assessments, completed activities and the differences between attempts."
         actions={<Button to="/app/post-assessment" size="sm" variant="secondary">Take the follow-up</Button>}
       />
 

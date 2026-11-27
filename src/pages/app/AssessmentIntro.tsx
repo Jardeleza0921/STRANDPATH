@@ -56,7 +56,7 @@ export function AssessmentIntro() {
       <PageHeader
         eyebrow="Your assessment"
         title="Let's Get Started"
-        description="This assessment describes your interests, strengths and preferences, then connects them to the seven SHS strands. Answer honestly — there are no right answers, and nothing is timed."
+        description="Discover your interests, strengths and current readiness through guided questions. There are no right answers, nothing is timed, and you can pause at any question and return later."
       />
 
       {actionError && (

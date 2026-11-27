@@ -1,7 +1,7 @@
 import { all, get, run, tx, now, parseJson, audit, getSetting, setSetting } from '../db.js';
 import { HttpError } from '../http.js';
-import { CATEGORY_KEYS, CATEGORIES } from '../content.js';
-import { labelFor } from '../engine.js';
+import { CATEGORY_KEYS, CATEGORIES } from '../../shared/content.js';
+import { labelFor } from '../../shared/engine.js';
 
 const ADMIN = { auth: true, roles: ['admin'] };
 const STAFF = { auth: true, roles: ['admin', 'guidance'] };
@@ -62,7 +62,7 @@ function assertDraft(row) {
 }
 
 export function registerAdminRoutes(router, deps) {
-  const { db, aiStatus, supportTicketPayload, assessmentSummary, programPayload } = deps;
+  const { db, supportTicketPayload, assessmentSummary, programPayload } = deps;
 
   /* ------------------------------------------------------------- overview */
 
@@ -122,7 +122,6 @@ export function registerAdminRoutes(router, deps) {
           assessmentCompletionRate: students ? Math.round((studentsWithPre / students) * 100) : 0,
           selectionRate: studentsWithPre ? Math.round((selected / studentsWithPre) * 100) : 0
         },
-        ai: aiStatus(),
         recentLogs: all(
           db,
           `SELECT l.id, l.action, l.target, l.created_at, u.name AS actor FROM admin_logs l
@@ -875,13 +874,10 @@ export function registerAdminRoutes(router, deps) {
   router.get('/api/admin/settings', async () => ({
     body: {
       settings: {
-        aiEnabled: Boolean(getSetting(db, 'ai.enabled', true)),
-        aiGrounding: getSetting(db, 'ai.grounding', {}),
         retentionMonths: Number(getSetting(db, 'privacy.retentionMonths', 24)),
         supportEmail: getSetting(db, 'support.email', ''),
         notice: getSetting(db, 'system.notice', '')
       },
-      ai: aiStatus(),
       questionnaire: get(db, "SELECT version, status, activated_at FROM questionnaires WHERE status='active'"),
       staff: all(db, "SELECT id, name, email, role FROM users WHERE role IN ('admin','guidance') ORDER BY role")
     }
@@ -889,21 +885,6 @@ export function registerAdminRoutes(router, deps) {
 
   router.put('/api/admin/settings', async ({ body, user }) => {
     const changes = [];
-    if (body.aiEnabled !== undefined) {
-      setSetting(db, 'ai.enabled', Boolean(body.aiEnabled));
-      changes.push('ai.enabled');
-    }
-    if (body.aiGrounding !== undefined) {
-      if (typeof body.aiGrounding !== 'object' || Array.isArray(body.aiGrounding)) throw new HttpError(400, 'Grounding must be an object');
-      const grounding = {
-        strands: Boolean(body.aiGrounding.strands),
-        activities: Boolean(body.aiGrounding.activities),
-        assessment: Boolean(body.aiGrounding.assessment),
-        careers: Boolean(body.aiGrounding.careers)
-      };
-      setSetting(db, 'ai.grounding', grounding);
-      changes.push('ai.grounding');
-    }
     if (body.retentionMonths !== undefined) {
       const months = Number(body.retentionMonths);
       if (!Number.isFinite(months) || months < 1 || months > 120) throw new HttpError(400, 'Retention must be between 1 and 120 months');

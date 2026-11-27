@@ -37,7 +37,7 @@ export function History() {
       <PageHeader
         eyebrow="Your records"
         title="My Previous Assessments"
-        description="Every attempt is stored separately with the questionnaire and algorithm version used. Nothing is overwritten."
+        description="Revisit every attempt with the version used to score it. Comparing your baseline with a later attempt shows how your answers changed — nothing is overwritten."
         actions={<Button to="/app/assessment" size="sm">Start a new assessment</Button>}
       />
 

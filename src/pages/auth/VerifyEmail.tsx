@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { AuthFrame } from '../../components/auth/AuthFrame';
 import { api, errorMessage } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { isStaticMode } from '../../lib/mode';
 
 export function VerifyEmail() {
   const [params] = useSearchParams();
@@ -67,6 +68,30 @@ export function VerifyEmail() {
       setBusy(false);
     }
   };
+
+  if (isStaticMode()) {
+    return (
+      <AuthFrame
+        eyebrow="Email confirmation"
+        title="Local accounts do not need email confirmation."
+        description="This static build has no email service and stores your account only in this browser."
+      >
+        <h2 className="font-display text-[24px] font-bold text-ink">Nothing to confirm</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted">
+          Your local account is already active. Password recovery by email is not available here; instead, keep your
+          password safe and export your records if you need a copy.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button to={user ? '/app' : '/login'} size="lg">
+            {user ? 'Go to my dashboard' : 'Sign in'}
+          </Button>
+          <Button to="/app/settings" variant="secondary" size="lg">
+            Account settings
+          </Button>
+        </div>
+      </AuthFrame>
+    );
+  }
 
   return (
     <AuthFrame

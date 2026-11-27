@@ -35,7 +35,7 @@ export function StrandExplorer() {
       <PageHeader
         eyebrow="Explore"
         title="Explore Strands"
-        description="Read what each strand involves, the subjects it uses and the pathways it can open. Strand availability differs between schools — confirm your school's offerings before deciding."
+        description="Compare academic strands, college programs and careers before deciding which pathway you want to pursue. Availability differs between schools, so confirm your own school's offerings."
         actions={
           <>
             <Button to="/app/strands/compare" variant="secondary" size="sm">Compare strands</Button>

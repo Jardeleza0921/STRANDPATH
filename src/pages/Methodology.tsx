@@ -3,6 +3,7 @@ import { AlertTriangleIcon, ArrowRightIcon, BookOpenIcon, FlaskConicalIcon, Shie
 import { PageHeader } from '../components/ui/Primitives';
 import { Button } from '../components/ui/Button';
 import { api } from '../lib/api';
+import { isStaticMode } from '../lib/mode';
 import { QuestionnaireMeta } from '../types/api';
 
 const SECTIONS = [
@@ -291,8 +292,9 @@ where Σ strandWeight(strand, ·) = 1.0`}</Block>
                 built from the student's chosen strand, not automatically from the top recommendation.
               </li>
               <li>
-                <strong className="text-ink">AI is not in the scoring path.</strong> The Virtual Coach can explain a
-                stored result and discuss options, but it never computes, edits or overrides a score.
+                <strong className="text-ink">No AI model is in the scoring path.</strong> Strand Assistance explains a
+                stored result with a local, rule-based guidance engine, but it never computes, edits or overrides a
+                score.
               </li>
             </ul>
           </section>
@@ -301,6 +303,12 @@ where Σ strandWeight(strand, ·) = 1.0`}</Block>
             <h2 className="flex items-center gap-2 font-display text-[24px] font-bold text-ink">
               <ShieldCheckIcon className="h-5 w-5 text-brand" aria-hidden /> D. Software validation (implemented)
             </h2>
+            {isStaticMode() && (
+              <p className="mt-3 rounded-md border border-line bg-surface2/50 p-3 text-[12.5px] leading-relaxed text-muted">
+                This table describes the optional server deployment. The GitHub Pages build has no server: scoring and
+                records stay in your browser, and the server-side controls below do not apply to it.
+              </p>
+            )}
             <div className="mt-3 overflow-hidden rounded-lg border border-line">
               <table className="w-full border-collapse text-left text-[12.5px]">
                 <thead>

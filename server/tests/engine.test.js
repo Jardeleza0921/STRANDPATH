@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { QUESTIONNAIRE_V1, STRANDS } from '../content.js';
-import { scoreAssessment, validateAnswers, scoreCategories, compareResults, ALGORITHM_VERSION } from '../engine.js';
+import { QUESTIONNAIRE_V1, STRANDS } from '../../shared/content.js';
+import { scoreAssessment, validateAnswers, scoreCategories, compareResults, ALGORITHM_VERSION } from '../../shared/engine.js';
 
 const questions = QUESTIONNAIRE_V1.questions.map((q, i) => ({
   code: q.code,

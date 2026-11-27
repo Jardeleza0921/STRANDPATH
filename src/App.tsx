@@ -1,6 +1,7 @@
 import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { isStaticMode, routerMode } from './lib/mode';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { RequireAuth } from './components/RequireAuth';
 import { SiteLayout } from './components/site/SiteLayout';
@@ -38,8 +39,9 @@ import { Pathways } from './pages/app/Pathways';
 import { Program } from './pages/app/Program';
 import { ActivityPage } from './pages/app/ActivityPage';
 import { Progress } from './pages/app/Progress';
+import { Development } from './pages/app/Development';
 import { PostAssessment } from './pages/app/PostAssessment';
-import { Coach } from './pages/app/Coach';
+import { Assistance } from './pages/app/Assistance';
 import { Support } from './pages/app/Support';
 import { Profile } from './pages/app/Profile';
 import { Settings } from './pages/app/Settings';
@@ -55,11 +57,13 @@ import { AdminAnalytics } from './pages/admin/AdminAnalytics';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminLogs } from './pages/admin/AdminLogs';
 
+const Router = routerMode === 'hash' ? HashRouter : BrowserRouter;
+
 export function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <BrowserRouter>
+        <Router>
           <Routes>
             <Route element={<SiteLayout />}>
               <Route path="/" element={<Landing />} />
@@ -109,16 +113,19 @@ export function App() {
               <Route path="strands/compare" element={<CompareStrands />} />
               <Route path="strands/:slug" element={<StrandDetail />} />
               <Route path="pathways" element={<Pathways />} />
+              <Route path="development" element={<Development />} />
               <Route path="program" element={<Program />} />
               <Route path="program/activities/:id" element={<ActivityPage />} />
               <Route path="progress" element={<Progress />} />
               <Route path="post-assessment" element={<PostAssessment />} />
-              <Route path="coach" element={<Coach />} />
+              <Route path="assistance" element={<Assistance />} />
+              <Route path="coach" element={<Navigate to="/app/assistance" replace />} />
               <Route path="support" element={<Support />} />
               <Route path="profile" element={<Profile />} />
               <Route path="settings" element={<Settings />} />
             </Route>
 
+            {!isStaticMode() ? (
             <Route
               path="/admin"
               element={
@@ -139,10 +146,14 @@ export function App() {
               <Route path="logs" element={<AdminLogs />} />
             </Route>
 
+            ) : (
+              <Route path="/admin" element={<Navigate to="/" replace />} />
+            )}
+
             <Route path="/landing" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
       </ThemeProvider>
     </AuthProvider>
   );

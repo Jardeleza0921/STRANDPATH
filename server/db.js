@@ -186,17 +186,6 @@ CREATE TABLE IF NOT EXISTS program_activities (
   UNIQUE(program_id, activity_id)
 );
 
-CREATE TABLE IF NOT EXISTS ai_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  agent TEXT NOT NULL CHECK(agent IN ('coach','support')),
-  role TEXT NOT NULL CHECK(role IN ('user','assistant','system')),
-  content TEXT NOT NULL,
-  meta TEXT,
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_ai_user ON ai_messages(user_id, agent, created_at);
-
 CREATE TABLE IF NOT EXISTS support_tickets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

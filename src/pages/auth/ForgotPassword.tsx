@@ -5,6 +5,7 @@ import { Alert, Field, TextInput } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { AuthFrame } from '../../components/auth/AuthFrame';
 import { api, errorMessage } from '../../lib/api';
+import { isStaticMode } from '../../lib/mode';
 import { EmailStatus } from '../../types/api';
 
 interface ForgotResponse {
@@ -56,9 +57,11 @@ export function ForgotPassword() {
           </div>
         ) : (
           <div className="mt-4">
-            <Alert tone="warn" title="Email delivery is not active">
-              {result.email.note} No message can be delivered until an administrator configures SMTP, so do not wait
-              for an email. Staff can reset a password from the server with a fresh OTP once email is working.
+            <Alert tone="warn" title={isStaticMode() ? 'This account cannot send email' : 'Email delivery is not active'}>
+              {result.email.note}{' '}
+              {isStaticMode()
+                ? 'A forgotten local password cannot be recovered, because there is no server or email service. You can create a new account in this browser.'
+                : 'No message can be delivered until an administrator configures SMTP, so do not wait for an email. Staff can reset a password from the server with a fresh OTP once email is working.'}
             </Alert>
           </div>
         )}

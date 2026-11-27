@@ -8,6 +8,7 @@ import { AuthFrame } from '../../components/auth/AuthFrame';
 import { PasswordInput } from '../../components/auth/PasswordInput';
 import { GoogleButton } from '../../components/auth/GoogleButton';
 import { errorMessage } from '../../lib/api';
+import { isStaticMode } from '../../lib/mode';
 
 const OAUTH_MESSAGES: Record<string, string> = {
   google_not_configured: 'Google sign-in is not configured on this server yet.',
@@ -70,10 +71,14 @@ export function Login() {
     <AuthFrame
       eyebrow="Welcome back"
       title="Pick up where you left off."
-      description="Your assessment history, results, improvement plan and progress live in your account. Only you and authorised guidance staff can see them."
+      description="Sign in to continue your assessment, pathway or plan where you stopped. In this browser build your records stay on this device and are not sent to a school database."
     >
       <h2 className="font-display text-[24px] font-bold text-ink">Sign in</h2>
-      <p className="mt-1 text-[13px] text-muted">Students and school staff use the same sign-in form.</p>
+      <p className="mt-1 text-[13px] text-muted">
+        {isStaticMode()
+          ? 'Sign in to the local account saved in this browser. Nothing is sent to a server.'
+          : 'Students and school staff use the same sign-in form.'}
+      </p>
 
       <div className="mt-4 space-y-3">
         {oauthError && <Alert tone="danger">{OAUTH_MESSAGES[oauthError] ?? 'Google sign-in could not be completed.'}</Alert>}
@@ -130,13 +135,17 @@ export function Login() {
         </Button>
       </form>
 
-      <div className="my-5 flex items-center gap-3">
-        <span className="h-px flex-1 bg-line" />
-        <span className="text-[11px] uppercase tracking-[0.08em] text-faint">or</span>
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      {!isStaticMode() && (
+        <>
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-[11px] uppercase tracking-[0.08em] text-faint">or</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
 
-      <GoogleButton intent="login" />
+          <GoogleButton intent="login" />
+        </>
+      )}
 
       <p className="mt-5 border-t border-line pt-4 text-[13px] text-muted">
         New to STRANDPATH?{' '}
@@ -145,7 +154,9 @@ export function Login() {
         </Link>
       </p>
       <p className="mt-2 text-[11.5px] leading-relaxed text-faint">
-        Staff accounts are provisioned by the school and must replace their initial password at first sign-in.
+        {isStaticMode()
+          ? 'This static build has no staff or administrator area and no email recovery. Clearing this browser’s site data deletes the account and its records.'
+          : 'Staff accounts are provisioned by the school and must replace their initial password at first sign-in.'}
       </p>
     </AuthFrame>
   );

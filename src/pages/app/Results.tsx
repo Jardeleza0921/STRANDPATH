@@ -99,7 +99,7 @@ export function Results() {
       <PageHeader
         eyebrow={`${assessment.type === 'post' ? 'Post-assessment' : 'Pre-assessment'} · ${formatDate(assessment.submittedAt)}`}
         title="Your Suggested Strands"
-        description="These results describe how your answers align with each strand. They are evidence for a conversation, not a decision about your future."
+        description="Explore your strongest matches, understand the evidence behind them, and discover other pathways you may want to pursue — including ones that would need extra preparation."
         actions={
           <>
             <Button variant="secondary" size="sm" onClick={() => window.print()}>
@@ -131,6 +131,111 @@ export function Results() {
       )}
 
       {actionError && <div className="mt-4"><Alert tone="danger">{actionError}</Alert></div>}
+
+      {ranked.length > 0 && (
+        <Card className="mt-5 p-5">
+          <h2 className="text-[15px] font-semibold text-ink">Your decision, in your words</h2>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted">
+            The ranking is evidence, not an instruction. You can continue with your strongest match, choose another
+            recommended strand, or pursue a strand you personally want even if it needs more preparation first.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-md border border-line bg-canvas px-3.5 py-3">
+              <p className="text-[12.5px] font-semibold text-ink">Continue with your top match</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-muted">
+                {ranked[0].code} currently lines up most closely with your answers.
+              </p>
+              <div className="mt-2.5">
+                <Button size="sm" onClick={() => selectStrand(ranked[0].slug)} disabled={busy || selected === ranked[0].slug}>
+                  {selected === ranked[0].slug ? 'Selected' : `Choose ${ranked[0].code}`}
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-md border border-line bg-canvas px-3.5 py-3">
+              <p className="text-[12.5px] font-semibold text-ink">Choose another recommended strand</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-muted">
+                Every strand below is scored. Read the subjects and considerations before deciding.
+              </p>
+              <div className="mt-2.5">
+                <Button to="/app/strands/compare" variant="secondary" size="sm">Compare side by side</Button>
+              </div>
+            </div>
+            <div className="rounded-md border border-line bg-canvas px-3.5 py-3">
+              <p className="text-[12.5px] font-semibold text-ink">Pursue the strand you actually want</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-muted">
+                A lower match is not a rejection. Choose it and STRANDPATH builds a plan from your current evidence.
+              </p>
+            </div>
+          </div>
+
+          {selectedStrand && ranked[0].slug !== selectedStrand.slug && (
+            <div className="mt-4">
+              <Alert tone="info" title={`You chose ${selectedStrand.code} — that choice is respected`}>
+                Your assessment ranked {ranked[0].code} first, with {selectedStrand.code} at #{selectedStrand.rank} and an
+                alignment of {selectedStrand.score.toFixed(1)}. That gap is current preparation, not a limit. Your
+                development pathway starts at the foundations, skips anything you can already demonstrate, and builds
+                toward the strand you chose.{' '}
+                <Link to="/app/development" className="font-semibold underline">
+                  Open your development journey
+                </Link>
+                .
+              </Alert>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {assessment.type === 'post' && assessment.comparison && (
+        <Card className="mt-5 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-[15px] font-semibold text-ink">What changed since your baseline</h2>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+                A comparison of the same questionnaire, answered again. It describes change; it does not prove that any
+                activity caused it.
+              </p>
+            </div>
+            <Button to="/app/development" size="sm" variant="secondary">Readiness and next steps</Button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-md border border-line bg-canvas px-3.5 py-3">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-faint">Improved</p>
+              {assessment.comparison.improved.length ? (
+                <ul className="mt-1.5 space-y-1 text-[12.5px] text-muted">
+                  {assessment.comparison.improved.map((row) => (
+                    <li key={row.key} className="flex justify-between gap-2">
+                      <span className="text-ink">{row.label}</span>
+                      <span className="tabular-nums">+{row.delta ?? 0}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+                  No dimension moved upward this time. That is common and is not a failure.
+                </p>
+              )}
+            </div>
+            <div className="rounded-md border border-line bg-canvas px-3.5 py-3">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.05em] text-faint">Still to work on</p>
+              {assessment.comparison.declined.length ? (
+                <ul className="mt-1.5 space-y-1 text-[12.5px] text-muted">
+                  {assessment.comparison.declined.map((row) => (
+                    <li key={row.key} className="flex justify-between gap-2">
+                      <span className="text-ink">{row.label}</span>
+                      <span className="tabular-nums">{row.delta ?? 0}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted">
+                  Nothing declined. Keep practising the dimensions your pathway targets.
+                </p>
+              )}
+              <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{assessment.comparison.note}</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.55fr_1fr]">
         <div>
@@ -233,9 +338,9 @@ export function Results() {
               <li>4. Choose a strand and start a preparation programme.</li>
             </ol>
             <div className="mt-4 space-y-2">
-              <Button to="/app/coach" variant="secondary" size="sm" full>
+              <Button to="/app/assistance" variant="secondary" size="sm" full>
                 <MessageCircleIcon className="h-4 w-4" aria-hidden />
-                Ask the Virtual Coach to explain
+                Ask Strand Assistance to explain
               </Button>
               <Button to="/app/history" variant="ghost" size="sm" full>
                 View assessment history
@@ -349,8 +454,8 @@ function StrandResultCard({
               Build preparation programme
             </Button>
           )}
-          <Link to={`/app/coach?prompt=${encodeURIComponent(`Why did ${strand.code} rank #${strand.rank} for me?`)}`} className="inline-flex items-center gap-1 px-2 text-[12.5px] font-medium text-muted hover:text-ink">
-            Ask the coach about this
+          <Link to={`/app/assistance?prompt=${encodeURIComponent(`Why did ${strand.code} rank #${strand.rank} for me?`)}`} className="inline-flex items-center gap-1 px-2 text-[12.5px] font-medium text-muted hover:text-ink">
+            Ask about this strand
           </Link>
         </div>
       </div>

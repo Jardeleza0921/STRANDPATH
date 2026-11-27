@@ -1,4 +1,4 @@
-import { QUESTIONNAIRE_V1, STRANDS, ACTIVITIES } from './content.js';
+import { QUESTIONNAIRE_V1, STRANDS, ACTIVITIES } from '../shared/content.js';
 import { openDb, now, get, run, tx } from './db.js';
 import { hashPassword, passwordProblems } from './auth.js';
 
@@ -106,8 +106,6 @@ function seedActivities(db) {
 
 function seedSettings(db) {
   const defaults = {
-    'ai.enabled': true,
-    'ai.grounding': { strands: true, activities: true, assessment: true, careers: true },
     'privacy.retentionMonths': 24,
     'support.email': 'guidance@strandpath.local',
     'system.notice': ''

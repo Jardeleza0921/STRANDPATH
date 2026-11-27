@@ -1,15 +1,8 @@
-export class ApiError extends Error {
-  status: number;
-  code: string;
-  missing?: string[];
-  constructor(status: number, code: string, message: string, missing?: string[]) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = code;
-    this.missing = missing;
-  }
-}
+import { ApiError } from './apiError';
+import { isStaticMode } from './mode';
+import { localRequest } from './local/backend';
+
+export { ApiError };
 
 type Options = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -17,6 +10,10 @@ type Options = {
 };
 
 async function request<T>(path: string, { method = 'GET', body }: Options = {}): Promise<T> {
+  // The static build answers locally from browser storage; the optional Node
+  // backend keeps the same request shapes when VITE_API_MODE=server.
+  if (isStaticMode()) return localRequest<T>(path, method, body);
+
   const response = await fetch(`/api${path}`, {
     method,
     credentials: 'same-origin',

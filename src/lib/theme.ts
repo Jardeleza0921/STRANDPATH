@@ -46,6 +46,29 @@ export const THEMES: ThemeDefinition[] = [
 
 export const THEME_IDS = THEMES.map((theme) => theme.id);
 
+export type ModeId = 'light' | 'dark';
+
+const MODE_KEY = 'strandpath-mode';
+
+export function applyMode(mode: ModeId) {
+  if (typeof document !== 'undefined') document.documentElement.dataset.mode = mode;
+  try {
+    window.localStorage.setItem(MODE_KEY, mode);
+  } catch {
+    /* storage may be unavailable; the mode still applies for this visit */
+  }
+}
+
+export function readStoredMode(): ModeId {
+  try {
+    const stored = window.localStorage.getItem(MODE_KEY);
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {
+    /* ignore */
+  }
+  return 'light';
+}
+
 export const isThemeId = (value: unknown): value is ThemeId =>
   typeof value === 'string' && (THEME_IDS as string[]).includes(value);
 

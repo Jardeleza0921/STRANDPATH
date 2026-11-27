@@ -26,6 +26,9 @@ server/data/
 # Local verification screenshots
 artifacts/
 
+# Scratch tooling for diagram generation (not part of the application)
+.tools/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

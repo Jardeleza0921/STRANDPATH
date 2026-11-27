@@ -1,11 +1,22 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { applyTheme, isThemeId, readStoredTheme, ThemeId } from '../lib/theme';
+import {
+  applyMode,
+  applyTheme,
+  isThemeId,
+  ModeId,
+  readStoredMode,
+  readStoredTheme,
+  ThemeId
+} from '../lib/theme';
 import { api } from '../lib/api';
 import { useAuth } from './AuthContext';
 
 interface ThemeValue {
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
+  mode: ModeId;
+  setMode: (mode: ModeId) => void;
+  toggleMode: () => void;
   syncing: boolean;
 }
 
@@ -18,11 +29,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(initial);
     return initial;
   });
+  const [mode, setModeState] = useState<ModeId>(() => {
+    const initial = readStoredMode();
+    applyMode(initial);
+    return initial;
+  });
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    applyMode(mode);
+  }, [mode]);
 
   // A signed-in preference follows the account across devices.
   useEffect(() => {
@@ -45,7 +65,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [user]
   );
 
-  const value = useMemo(() => ({ theme, setTheme, syncing }), [theme, setTheme, syncing]);
+  const setMode = useCallback((next: ModeId) => {
+    setModeState(next);
+    applyMode(next);
+  }, []);
+
+  const toggleMode = useCallback(() => {
+    setModeState((current) => {
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyMode(next);
+      return next;
+    });
+  }, []);
+
+  const value = useMemo(
+    () => ({ theme, setTheme, mode, setMode, toggleMode, syncing }),
+    [theme, setTheme, mode, setMode, toggleMode, syncing]
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

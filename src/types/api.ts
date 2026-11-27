@@ -269,25 +269,6 @@ export interface DashboardData {
   program: Programme | null;
   reassessment: { recommendedAt: string; due: boolean; completed: boolean } | null;
   openTickets: number;
-  ai: { configured: boolean; available: boolean; model: string; provider: string; enabled: boolean; note: string };
-}
-
-export interface AiStatus {
-  configured: boolean;
-  available: boolean;
-  enabled: boolean;
-  model: string;
-  provider: string;
-  note: string;
-  keySource: string | null;
-  grounding?: Record<string, boolean>;
-}
-
-export interface ChatMessage {
-  id: number;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: string;
 }
 
 export interface SupportMessage {
@@ -308,4 +289,11 @@ export interface SupportTicket {
   updatedAt: string;
   assignedTo: number | null;
   messages: SupportMessage[];
+}
+
+export interface CareerField {
+  strandSlug: string;
+  strandCode: string;
+  field: string;
+  careers: string[];
 }

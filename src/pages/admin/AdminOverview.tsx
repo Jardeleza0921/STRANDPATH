@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, errorMessage, formatDate } from '../../lib/api';
-import { AiStatus } from '../../types/api';
-import { Alert, Card, Chip, ErrorState, LoadingBlock, PageHeader, Stat } from '../../components/ui/Primitives';
+import { Card, Chip, ErrorState, LoadingBlock, PageHeader, Stat } from '../../components/ui/Primitives';
 
 interface Overview {
   counts: {
@@ -26,7 +25,6 @@ interface Overview {
     studentsWithPrograms: number;
     highPriorityTickets: number;
   };
-  ai: AiStatus;
   recentLogs: { id: number; action: string; target: string | null; createdAt: string; actor: string }[];
   recentAssessments: { id: number; type: string; submittedAt: string; student: string }[];
   recentRegistrations: { id: number; name: string; email: string; verified: boolean; createdAt: string }[];
@@ -131,15 +129,6 @@ export function AdminOverview() {
         </Card>
       </div>
 
-      {!data.ai.configured && (
-        <div className="mt-6">
-          <Alert tone="warn" title="AI is not configured">
-            Coach and Support Agent chat are disabled. Set <code>AI_API_KEY</code> (or <code>OPENAI_API_KEY</code>) and
-            optionally <code>AI_MODEL</code> / <code>AI_BASE_URL</code> on the server, then restart. Everything else —
-            assessment, scoring, plans and monitoring — works without AI.
-          </Alert>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,324 +1,237 @@
 # STRANDPATH
 
-**AI-assisted academic strand guidance, assessment and student development platform** for Senior High School students.
+**Strand guidance, assessment and student development for Senior High School students — now a static, GitHub Pages-ready web application with an integrated Strand Assistance guide.**
 
-Students create an account, complete a versioned interest/strength assessment, see explainable strand alignments, choose a strand for themselves, work through a personalised improvement plan, track progress, take a follow-up assessment, and ask a grounded AI coach for explanations. School staff get a separate, audited administration area. Assessment scoring is deterministic and never delegated to AI.
+Students create a local account, complete a versioned interest/strength assessment, read explainable strand alignments, choose a strand for themselves, work through an improvement plan, track progress, take a follow-up assessment, and ask **Strand Assistance** about strands, college programmes, careers, skills and their own results.
+
+Everything the student uses runs in the browser. There is **no AI provider, no AI API key, no Node.js production server, no database, and no paid hosting** required for the student application.
 
 ---
 
-## 1. Current status (honest summary)
+## 1. What changed in this revision
+
+| Before | Now |
+| --- | --- |
+| `AI Virtual Coach` chat powered by an OpenAI-compatible API | **Strand Assistance**: a deterministic, local guidance engine with a structured knowledge base |
+| `AI_API_KEY` / `OPENAI_API_KEY`, model and base-URL settings | Removed from the student application and from the optional server; no provider credentials anywhere |
+| AI support agent chat | Support help topics plus support requests stored in the student's browser |
+| Node + SQLite required for every student feature | Student application is a static Vite build deployed to GitHub Pages |
+| BrowserRouter (nested refresh needs server rewrites) | **HashRouter in the static build**, so deep links survive refresh on GitHub Pages |
+| AI messages in `ai_messages` | Removed from the schema and code |
+
+The optional Node/SQLite backend is retained for schools that need shared accounts, email verification, Google sign-in, cross-device records or the administrator dashboard. It is now opt-in and is not part of the static deployment.
+
+---
+
+## 2. Status (honest)
 
 | Area | Status |
 | --- | --- |
-| Student accounts, sessions, remember me, forced first-password change | **Implemented and tested** |
-| Initial administrator and Klight student provisioning | **Implemented and tested** (requires passwords from env) |
-| Email verification tokens/OTP, reset tokens/OTP, expiry, attempt limits, reuse prevention, session revocation | **Implemented and tested** with a test mail transport |
-| Real email delivery over SMTP | **Implemented, not verified** — no SMTP credentials were available. Delivery must be confirmed with the school's provider |
-| Google Sign-In / Sign-Up (OAuth 2.0 + OIDC, JWKS signature verification) | **Implemented, not verified** — needs a Google client. Buttons stay disabled until configured |
-| Assessment engine, versioning, results, history, comparison | **Implemented and tested** |
-| Improvement plans, activities, progress, post-assessment | **Implemented and tested** |
-| AI Virtual Coach / Support Agent | **Implemented, inactive** — no AI key configured; endpoints return an honest 503 |
-| Administrator monitoring, pagination, questionnaires, strands, activities, tickets, audit log | **Implemented and tested** |
-| Four themes, skeuomorphic design, typography, reduced motion | **Implemented**; not visually reviewed in a browser in this environment |
-| Assessment methodology & validation page | **Implemented** at `/methodology` |
+| Static student build (register, sign in, assessment, results, programme, progress, support, Strand Assistance) | **Implemented**; typecheck, production build and guidance self-test pass |
+| Strand Assistance knowledge base and engine | **Implemented and tested** — 158 assertions over 12 topics, 11 FAQ entries and every supported example question |
+| Local account storage (PBKDF2-hashed passwords, localStorage records) | **Implemented**; not a secure multi-user authentication system (see §7) |
+| GitHub Pages workflow | **Implemented**; the first real Pages deployment must be run from GitHub Actions |
+| Email verification, password reset by email, Google sign-in | **Not available in the static build**; available in the optional backend |
+| Administrator dashboard, cross-device records, staff roles | **Not available in the static build**; available in the optional backend |
 | Educational (psychometric) validation | **Not done** — the questionnaire is a technical draft, not a validated instrument |
+| Automated UI end-to-end tests | Not added; the build, typecheck, engine self-test and API tests are the automated coverage |
 
 No passwords, API keys or SMTP credentials are stored in this repository.
 
 ---
 
-## 2. Stack and layout
+## 3. Quick start (static application)
 
-| Layer | Implementation |
+Requirements: **Node.js 20+** (the CI workflow uses Node 22).
+
+```bash
+npm ci
+npm run dev          # http://localhost:3000
+```
+
+Production build and local preview:
+
+```bash
+npm run build        # static output in dist/
+npm run preview      # serves dist/ through the optional Node server
+```
+
+The static build needs **no environment variables**. Open the site, create a student account, and take the pre-assessment.
+
+### Scripts
+
+| Script | Purpose |
 | --- | --- |
-| UI | React 18 + TypeScript + Vite + Tailwind, four CSS-variable themes |
-| API | Node.js `node:http`, JSON REST under `/api` |
-| Database | SQLite via `node:sqlite` (WAL, foreign keys, additive migrations) |
-| Auth | HTTP-only session cookie, scrypt hashes, role-based access control, hashed OTPs |
-| Email | `nodemailer` over SMTP; optional development file outbox |
-| Google | Authorization-code flow, local ID-token verification against Google JWKS |
-| AI | Server-side OpenAI-compatible chat completions |
-| Hosting | One Node process serves `dist/` and the API |
+| `npm run dev` | Vite development server |
+| `npm run build` | Static production build (`dist/`) |
+| `npm run typecheck` | `tsc --noEmit` over the TypeScript application |
+| `npm run test:guidance` | Runs every supported Strand Assistance topic and assessment integration |
+| `npm run test:development` | Runs the pathway, readiness, progression and strand-change self-test |
+| `npm test` | Optional backend API, auth and engine tests (30 tests) |
+| `npm run lint` | ESLint |
+| `npm run dev:api` / `npm start` | Optional Node API on port 8787 |
+| `npm run seed` | Seed the optional SQLite backend |
+
+---
+
+## 4. Deploying to GitHub Pages
+
+1. Push the repository to GitHub.
+2. Open **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Push to `main` (or run **Actions → Deploy STRANDPATH to GitHub Pages → Run workflow**).
+4. The site appears at `https://<user>.github.io/<repository>/`.
+
+The workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) installs with `npm ci`, runs the typecheck, the guidance and development self-tests, builds with `VITE_BASE_PATH=/<repository>/`, copies `index.html` to `404.html`, adds `.nojekyll`, and deploys `dist/` using the official Pages actions. No secrets are needed.
+
+Why refreshing a nested page works: the static build uses `HashRouter`, so the server only ever serves `index.html`. A URL such as `/#/app/assistance` is resolved entirely in the browser and a refresh cannot produce a 404. The trade-off is the `#` in the address bar; a custom 404 redirect trick is unnecessary.
+
+**Custom domain or user site:** set `VITE_BASE_PATH` to `/` (default) if the site is served from the domain root, and keep `base` in sync. See [`docs/STATIC_DEPLOYMENT.md`](docs/STATIC_DEPLOYMENT.md) for details and troubleshooting.
+
+---
+
+## 5. Strand Assistance (the replacement for the Virtual Coach)
+
+Strand Assistance is a first-class part of the student dashboard at `/app/assistance` (old `/app/coach` links redirect there). It looks like STRANDPATH, not an embedded third-party chatbot.
+
+**How it works**
+
+- Questions are normalised, matched to intents with keyword/phrase rules, and linked to knowledge-base entities (strands, programmes, careers) using aliases.
+- Responses are assembled from pre-written explanations plus the student's **real** latest assessment, selected strand, profile and improvement programme.
+- Conversation context is kept for the session (for example, `Compare STEM` followed by `ICT` completes the comparison).
+- It never computes or changes an official score. Scoring stays in `shared/engine.js`.
+- Questions outside the knowledge base get an explicit "I could not match that / I will not guess" answer with supported topics.
+- Every explanation shows its sources: the assessment id/date/algorithm version and/or the local knowledge base.
+
+**Supported topics** include: which strand fits; why a recommendation was made (dimension evidence, gaps, alternatives); comparing two strands; college programmes after a strand; careers for a strand, programme or career name; skills to develop; undecided students; alternative options; TVL specialisations; the improvement plan; next steps; assessment mechanics; data storage; and school-offering limits. The exact list lives in `src/guidance/knowledge/`.
+
+**Knowledge base** (`src/guidance/knowledge/`)
+
+| File | Contents |
+| --- | --- |
+| `strands.ts` | The eight SHS strand records, aliases, tracks and the caveat that schools differ |
+| `programs.ts` | 21 college programme entries: typical preparation, skills, careers, notes |
+| `careers.ts` | 21 career entries: strands, programmes, skills, day-to-day work, a first step |
+| `faqs.ts` | Structured answers for undecided students, TVL, STEM vs ICT, maths concerns, HUMSS, college vs work, privacy and emotional support |
+
+To add a programme or career, append an entry to the relevant file and add a test question to `src/guidance/selftest.ts`. Nothing is generated at runtime and no network request is made.
+
+**Limits stated to students:** recommendations are guidance, not a psychological assessment, an admission guarantee or a career prediction. School offerings, admission rules and deadlines must be confirmed with the school. The assistant does not answer medical, legal or personal-safety questions; it redirects to a trusted adult or counsellor.
+
+Full technical notes: [`docs/STRAND_ASSISTANCE.md`](docs/STRAND_ASSISTANCE.md).
+
+---
+
+## 5A. Development progression, readiness and strand choice
+
+A student's result is a starting point, not a limit. After the pre-assessment they can choose any strand — including one that needs significant preparation — and “My Development Journey” builds the path from their current evidence.
+
+- **Five stages per strand:** Foundation, Developing, Building Competence, Advanced Practice, Target Readiness. Each stage names the dimensions it asks for, a checkpoint, and strand-specific practice modules (mathematics foundations for STEM, financial literacy for ABM, digital literacy and programming for ICT, and so on).
+- **Two measurements:** current readiness (today's alignment with the chosen strand) and pathway evidence (what has actually been demonstrated). They are shown separately because ambition and current match are different things.
+- **Evidence, not attendance:** a completed activity counts through its knowledge-check score; an unchecked activity records participation at 45% only. Assessment scores are never raised because an activity was completed.
+- **Honest progress:** 100% requires every stage checkpoint and a submitted follow-up assessment. The page lists what is met, what remains, and what 100% does *not* mean.
+- **Starting at your level:** plan generation targets the chosen strand's biggest gaps, skips dimensions at 80%+, and skips foundation activities for dimensions already at 70%+.
+- **Changing strands:** completed records are kept, transferable evidence is reused, and the plan is rebuilt around the new strand's requirements.
+
+Strand Assistance reads the same model (stage, readiness, weakest/strongest dimensions, next action, transferable skills) and adapts: a stuck student gets a smaller step and a different approach on repeat; a strong student is offered a harder constraint instead of beginner content; discouraged students get a realistic next step and a pointer to a person.
+
+Full model notes: [`docs/DEVELOPMENT_PROGRESSION.md`](docs/DEVELOPMENT_PROGRESSION.md).
+
+---
+
+## 6. Assessment engine (unchanged, now shared)
+
+Questionnaire v1.0 has 20 items contributing points to ten dimensions. The deterministic algorithm `strandpath-fit-1.0.0` is in [`shared/engine.js`](shared/engine.js) and is used by **both** the static build and the optional server, so there is one implementation of scoring.
+
+1. Validate every answer against the questionnaire version.
+2. `raw(d) = Σ optionPoints(d) × itemWeight`.
+3. `max(d) = Σ itemWeight × bestAttainable(d)` (for limited multi-select, the *k* highest options).
+4. `scaled(d) = clamp(raw / max, 0, 1)`.
+5. `alignment = 100 × Σ scaled(d) × strandWeight(d)`.
+6. Bands: ≥60 strong, ≥48 good, ≥38 some, otherwise "worth exploring"; ties break by strand code.
+7. Strengths are the highest dimensions; development areas the lowest, framed as practice.
+
+Each submitted assessment stores its questionnaire version, algorithm version, answers and computed result, so old results remain explainable. The questionnaire is labelled `technical-draft`: it has not been pilot-tested, reliability-tested or expert-validated. Do not describe results as validated.
+
+---
+
+## 7. Student data and privacy in the static build
+
+- Accounts, profiles, answers, results, programmes and support requests live in this browser's `localStorage` under one versioned key.
+- Passwords are stored as salted **PBKDF2-SHA256** hashes (150,000 iterations), never plain text. The salt and hash are in local storage, so this protects against casual inspection, not against someone with control of the device or the browser profile.
+- **This is not secure multi-user authentication and not a school record system.** It cannot verify identity, recover a forgotten password, enforce staff access or share records across devices.
+- Clearing site data, private browsing, changing browser or device, or storage eviction deletes the records. The UI says this on the registration, settings, support and Strand Assistance screens.
+- Students can export a JSON copy from **Profile → Export my records**, and delete the account and its records from **Settings**.
+- The assistant runs locally. No question, answer, profile or result is sent to any AI service.
+- Do not publish personal data in JSON/CSV files in the repository. The knowledge base contains only generic programme and career descriptions.
+
+For a school that needs verified accounts, cross-device records and staff oversight, run the optional backend and build with `VITE_API_MODE=server`. Nothing in the static build pretends those guarantees exist.
+
+---
+
+## 8. Optional Node/SQLite backend
+
+The backend remains in [`server/`](server/) for the features that genuinely require one: shared accounts, email verification and password reset, Google sign-in, staff roles, the audited administrator dashboard, cross-device records and centralized support tickets.
+
+```bash
+cp .env.example .env     # initial passwords and optional SMTP/Google values
+npm run seed
+VITE_API_MODE=server npm run build
+npm start                # http://localhost:8787 serves dist/ and /api
+```
+
+With `VITE_API_MODE=server` the client uses the same fetch client as before and the full admin area is routed in. The database schema no longer includes `ai_messages`; the AI endpoints, provider configuration and AI UI have been removed.
+
+Deployment notes for Docker, Render, Railway, Netlify and a VPS are kept in the repository (`Dockerfile`, `render.yaml`, `railway.json`, `netlify.toml`) but are **optional** and not needed for GitHub Pages. Remove `AI_*` variables from any existing deployment configuration.
+
+---
+
+## 9. Project structure
 
 ```
 src/
-  pages/            public, auth, student (/app), admin (/admin), Methodology
-  components/       UI primitives, auth components, shells, theme switcher
-  contexts/         AuthContext, ThemeContext
-  hooks/            auth configuration cache
-  lib/              api client, theme definitions
-server/
-  index.js          process entry (seed + start)
-  app.js            API routes, dispatch, forced-password gate
-  routes/auth.js    registration, login, remember me, OTP reset, verification, Google
-  routes/admin.js   staff endpoints, audit logging, pagination
-  engine.js         deterministic scoring and comparison
-  content.js        questionnaire v1.0, dimensions, strand weights, activity library
-  mailer.js         SMTP transport + email templates + honest status
-  google.js         OAuth URLs, code exchange, ID-token verification
-  db.js             schema, migrations, helpers
-  seed.js           idempotent content + account provisioning
-  tests/            engine, API and authentication tests
+  pages/                 public site, auth, student app (/app), admin (/admin)
+  pages/app/Assistance.tsx   Strand Assistance interface
+  guidance/              engine, knowledge base, types, self-test
+  lib/local/             browser storage, local password hashing, student API
+  lib/api.ts             routes to the local backend (static) or fetch (server)
+  lib/mode.ts            VITE_API_MODE and router strategy
+  data/                  public strand and questionnaire content
+shared/
+  content.js             questionnaire, strands, activity library
+  engine.js              deterministic scoring and comparison
+server/                  OPTIONAL Node/SQLite backend and tests
+scripts/check-guidance.mjs   bundles and runs the guidance self-test
+.github/workflows/deploy.yml GitHub Pages build and deployment
+docs/                    static deployment and Strand Assistance notes
 ```
 
 ---
 
-## 3. Running locally
+## 10. Verification performed
 
-Requirements: **Node.js 22.13+** (built-in `node:sqlite`).
-
-```bash
-npm install
-cp .env.example .env      # fill in the two initial passwords
-npm run seed
-npm run build
-npm start                 # http://localhost:8787
-```
-
-Development with hot reload:
-
-```bash
-npm run dev:api           # API on :8787
-npm run dev               # Vite on :3000, proxies /api
-```
-
-`npm run seed` is idempotent: it creates content and the configured accounts only when missing. It never resets an existing password.
-
-### Initial accounts
-
-The seed provisions exactly the accounts requested for this deployment:
-
-| Role | Email | Password source |
-| --- | --- | --- |
-| Administrator | `jjardeleza@paterostechnologicalcollege.edu.ph` | `INITIAL_ADMIN_PASSWORD` (fallback `ADMIN_PASSWORD`) |
-| Student (Klight) | `jaruiorijardeleza@gmail.com` | `INITIAL_STUDENT_PASSWORD` (fallback `STUDENT_PASSWORD`) |
-
-Both are inserted server-side with role `admin` / `student`, hashed passwords, a verified email (provisioned by the school) and `must_change_password = 1`. They must use the normal sign-in page and replace the initial password before any dashboard or API access is granted. Public registration can only create students.
-
-If a password variable is absent, the account is skipped with a printed note; nothing is created with a default password. Never commit `.env`.
-
-### Environment variables
-
-| Variable | Purpose |
+| Check | Result |
 | --- | --- |
-| `PORT`, `DB_PATH`, `NODE_ENV` | Server port, SQLite file, `production` enables Secure cookies |
-| `APP_BASE_URL` | Public origin used in email links and OAuth redirects |
-| `INITIAL_ADMIN_EMAIL/NAME/PASSWORD` | First administrator |
-| `INITIAL_STUDENT_EMAIL/NAME/PASSWORD` | Initial Klight student account |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | Real transactional email |
-| `OTP_TTL_MINUTES` | Reset/verification code lifetime (default 10) |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | Google sign-in |
-| `AI_API_KEY` or `OPENAI_API_KEY`, `AI_BASE_URL`, `AI_MODEL`, `AI_TIMEOUT_MS` | AI coach (optional) |
+| `npm run typecheck` | Passes |
+| `npm run test:guidance` | 199 checks pass (topics, shortcuts, FAQ reachability, assessment grounding, follow-up context, adaptive struggle/challenge/readiness/switch answers, unsupported detection) |
+| `npm run test:development` | 253 checks pass (all seven pathways, low-match choice, evidence rules, mastery skipping, 100% gate, plan next action, strand changes) |
+| `npm run build` | Passes; static `dist/` produced |
+| `npm test` (optional backend) | 30 tests pass |
+| Production guidance bundle | Contains no AI provider code or API keys |
+| Browser smoke test (Chromium, 1440×900 and 390×844) | Register → 20-item assessment → submitted results → grounded Strand Assistance answers → unsupported-question fallback; no console errors and no horizontal overflow |
+| GitHub Actions deployment | Not executed from this environment; the workflow is ready and requires Pages to be enabled |
 
-Optional development tools: `EMAIL_TRANSPORT=json` writes messages to `EMAIL_OUTBOX_DIR` instead of sending. It is never used unless explicitly set.
-
----
-
-## 4. Authentication and account security
-
-* Sign-in accepts email + password, with show/hide, remember me (30 days; otherwise 12 hours), forgot password, and Google when configured. Success redirects by role: students to `/app`, staff to `/admin`.
-* Passwords: scrypt with per-user salt, timing-safe comparison, length and complexity rules, HIBP-style blocking is not included.
-* Sessions: 256-bit random tokens, stored SHA-256 hashed, in HTTP-only `SameSite=Lax` cookies (`Secure` in production). Sign-in rotates sessions; password change/reset revokes the others; suspension takes effect immediately.
-* Provisioned accounts are gated server-side: any API call other than the password-change/verification/profile-theme allowlist returns `403 PASSWORD_CHANGE_REQUIRED`. The SPA redirects to `/change-password`.
-* Rate limits: registration 10/hour/IP; login 15 attempts/15 min per IP+email; forgot 8/hour/IP and 4/hour/account; reset 12/15 min/IP; verification 20/15 min/IP; AI 30/hour/student. Limits are per process (see limitations).
-* Cross-origin mutating requests are rejected, strict security headers and CSP are set, JSON bodies are capped, SQL is parameterised, and student-owned records are scoped by user id (foreign ids return 404).
-* Every staff view of a student record is written to `admin_logs`.
-
-### Email verification and password reset
-
-`POST /api/auth/forgot` always answers neutrally. For a real active account it creates a single-use record containing:
-
-* a 32-byte link token, stored as SHA-256;
-* a six-digit OTP, stored as a scrypt hash;
-* an expiry (`OTP_TTL_MINUTES`), an attempt counter (max 5), and a used-at marker.
-
-No plaintext code is stored. Requesting a new code invalidates the previous unused one. A successful reset also verifies the email, clears the forced-change flag, revokes every session, sends a confirmation email (when SMTP is configured) and clears the session cookie. Verification emails use 60-minute links. Used, expired or over-attempted codes fail with a generic message.
-
-**SMTP configuration:** set the five SMTP variables and `EMAIL_FROM`, restart, then request a reset and confirm receipt. If sending fails, the API reports `delivery: failed` and the UI says email is unavailable; it never pretends an email was sent. The tests inject a capture mailer and verify the token/OTP flow; real provider delivery is **not** verified here.
-
-### Google OAuth
-
-1. In Google Cloud Console create an OAuth 2.0 Client (Web application).
-2. Authorized JavaScript origin: `APP_BASE_URL` (for local development, `http://localhost:8787`).
-3. Authorized redirect URI: `APP_BASE_URL/api/auth/google/callback`.
-4. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, restart.
-
-Flow: a random state is bound to an HTTP-only cookie, the code is exchanged server-side, and the ID token is verified locally (RS256 signature against Google JWKS, issuer, audience, expiry, verified email). New Google users are students and require the privacy-consent checkbox on the registration page. Existing accounts are linked only when their email is already verified; a Google identity can never take over an unverified password account. Google users get a random unusable password hash and can set a password through Forgot Password.
-
-Without credentials, `/api/auth/google/status` reports `configured: false`, the start endpoint returns `503 GOOGLE_NOT_CONFIGURED`, and the buttons are disabled with an explanation. No simulated Google login exists.
+Not verified here: real GitHub Pages hosting, browsers other than Chromium, physical devices, and the optional backend's SMTP/Google flows without credentials. The mobile and desktop checks used responsive viewport resizing, not real phones.
 
 ---
 
-## 5. Themes and interface
+## 11. Known limitations
 
-* Four themes — Green, Blue, Red, Violet — implemented as CSS variables mapped into Tailwind. Each uses light paper/surface tones with deep panels for navigation and hierarchy (roughly 60% light, 40% dark).
-* Theme choice applies instantly, persists in `localStorage` for first paint, and is stored on the student/staff profile so it follows the account. `PUT /api/auth/theme` validates the id.
-* Skeuomorphic layer: layered gradients, inset highlights, soft realistic shadows, tactile pressed/hover states, inset inputs, and restrained borders.
-* Typography: Plus Jakarta Sans for headings and Inter for body, with consistent scale and spacing.
-* Motion: page/card rise animations, progress transitions, hover/press feedback. `prefers-reduced-motion` disables animation globally.
-* Student-facing wording is intentionally encouraging ("Let's Get Started", "Your Suggested Strands", "My Improvement Plan") and repeatedly states that recommendations are guidance, not decisions.
-* Accessibility: labelled inputs, visible focus rings, keyboard-operable controls, semantic tables, `aria-live` status messages, responsive layouts down to small phones.
-
----
-
-## 6. Assessment design and algorithm (`strandpath-fit-1.0.0`)
-
-**Questionnaire v1.0**: 20 items across Interests, Strengths, Work style, Talents, Preferences and Readiness, with single-choice, limited multi-select and five-point scale items. Options contribute 0–3 points to ten dimensions:
-
-`Scientific & Investigation`, `Analysis & Problem Solving`, `Numbers & Data`, `Technology & Systems`, `Creativity & Design`, `Communication & Language`, `People & Community`, `Business & Organisation`, `Hands-on & Practical`, `Persistence & Self-direction`.
-
-1. Validate every answer against the stored version (known option codes, cardinality, maximum choices, all items present).
-2. `raw(d) = Σ optionPoints(d) × itemWeight`.
-3. `max(d) = Σ itemWeight × bestAttainable(d)`; for a multi-select limited to *k*, this uses the *k* highest option values — a conservative upper bound.
-4. `scaled(d) = clamp(raw / max, 0, 1)`.
-5. `alignment = 100 × Σ scaled(d) × strandWeight(d)`, with each strand vector required to sum to 1.0.
-6. Bands: ≥60 strong, ≥48 good, ≥38 some, otherwise "worth exploring". Ranking is deterministic with a strand-code tie-break; close results raise a warning.
-7. Strengths = top three dimensions; development areas = lowest two, framed as practice areas.
-
-All item weights are 1.0 because no pilot data justifies otherwise. Active questionnaire versions are immutable; changes require a cloned draft. Each assessment stores its questionnaire version, algorithm version, answers, scores and recommendations, so old results stay explainable. The full method, worked example, validation matrix and testing examples are in `/methodology`.
-
-**The questionnaire has not been pilot-tested, reliability-tested or expert-validated.** The application records it as `technical-draft` and says so in the UI. Do not describe results as validated.
-
----
-
-## 7. Student workflow
-
-Dashboard → pre-assessment (autosave, resume, validation, review) → results with evidence and gaps → strand exploration/comparison/careers → student chooses a strand → improvement plan generated from the chosen strand and lowest dimensions → activities with reflections and optional knowledge checks → progress → follow-up assessment with stored comparison → history.
-
-Students can export their data and delete their account. Support requests and AI conversations are private to the student. There are no public profiles, social features or student-to-student messaging.
-
----
-
-## 8. Administration
-
-Staff sign in through the same page and land on `/admin`. Guidance reviewers get read-only student records, recent submissions and support triage; administrators also manage accounts, questionnaire versions, strands and weights, activities, analytics, AI/system settings and the audit log.
-
-Overview statistics come from live SQL: totals, active/suspended, verified/unverified emails, new registrations in 7/30 days, pre/post participation, plan participation, completed activities, open/high-priority tickets, selection and completion rates, recent registrations, submissions and audit entries. The student list uses server-side search, status filter and pagination (25 per page, indexed/limited queries) instead of loading every record.
-
----
-
-## 9. Database
-
-Tables: `users`, `sessions`, `profiles`, `questionnaires`, `questions`, `question_options`, `strands`, `assessments`, `assessment_scores`, `recommendations`, `activities`, `programs`, `program_activities`, `ai_messages`, `support_tickets`, `support_messages`, `admin_logs`, `settings`, `email_tokens`, `notifications`, `meta`.
-
-Recent additions: `users.email_verified_at`, `users.must_change_password`, `users.google_sub` (unique), `profiles.theme`, `email_tokens` (purpose, hashed token/OTP, expiry, attempts, used_at), `notifications` (read state). Migrations are additive and run automatically at startup. Back up the SQLite file and its `-wal` sidecar (or use `sqlite3 .backup`) while the process is stopped.
-
----
-
-## 10. Testing
-
-```bash
-npm test          # 31 tests
-npm run typecheck # tsc --noEmit
-npm run build     # production SPA
-npm run lint      # 0 errors expected
-```
-
-Covered automatically:
-
-* **Engine** — determinism, full ranking, bounds, normalisation, multi-select maxima, technology- vs people-oriented profiles, invalid/missing answers, comparison.
-* **Application API** — registration/consent, login/logout, profile persistence, assessment save/resume/submit, incomplete and cross-student access, selection/programme/activity completion, post-assessment comparison, ticket ownership, AI unavailable state, RBAC, audit logging, immutable questionnaire and draft cloning, cross-origin refusal.
-* **Authentication** — provisioning idempotence and no plaintext storage, forced initial password change and role isolation, verification email and single-use token, remember-me cookie lifetimes, neutral forgot-password response, OTP reset with session revocation, used/expired/attempt-limited codes, reset-link flow, account theme persistence, same-origin proxy headers, Google not-configured behaviour.
-
-A manual smoke run previously covered the whole journey end to end against a fresh database. Real SMTP delivery, Google OAuth round-trip and AI replies cannot be tested here because no credentials exist.
-
----
-
-## 11. Deployment
-
-**GitHub Pages cannot host this application.** Pages serves static files only: no Node process, no SQLite writes, no sessions, no SMTP, no AI or admin APIs. Publishing the SPA there would load a shell whose `/api/*` calls all fail, so it is not a valid deployment target. Use a Node/container host with a persistent volume.
-
-Single Node process, no server-side build. Every option below uses the same image/config.
-
-### Docker (any host)
-
-```bash
-cp .env.example .env        # passwords, APP_BASE_URL, SMTP/Google/AI as needed
-npm run build               # optional; the image builds it too
-docker compose up -d --build
-```
-
-The container listens on 8787, stores SQLite at `/data`, runs as the unprivileged `node` user, and has a health check against `/api/health`. The named volume `strandpath-data` must be backed up.
-
-```bash
-docker compose logs -f
-docker compose exec app node -e "fetch('http://127.0.0.1:8787/api/health').then(r=>r.text()).then(console.log)"
-```
-
-For plain HTTP local use, `NODE_ENV=development` is the compose default so cookies are not `Secure`. Set `NODE_ENV=production` behind HTTPS. `APP_BASE_URL` must be the public HTTPS origin for email links and Google OAuth.
-
-### Render (Blueprint)
-
-1. Push this repository (already done).
-2. In Render choose **New → Blueprint**, connect `Jardeleza0921/STRANDPATH`; Render reads [`render.yaml`](render.yaml).
-3. Enter the secret values it prompts for: `INITIAL_ADMIN_PASSWORD`, `INITIAL_STUDENT_PASSWORD`, and optionally SMTP, Google and AI credentials. Set `APP_BASE_URL` to the Render URL after the first deploy.
-4. The blueprint mounts a 1 GB persistent disk at `/data` and sets `NODE_ENV=production`. Persistent disks require a paid instance type.
-5. First boot seeds the questionnaire, strands, activities and the two accounts. Check `/api/health`, then sign in and change the passwords.
-
-One-click Blueprint link: `https://render.com/deploy?repo=https://github.com/Jardeleza0921/STRANDPATH`
-
-### Netlify frontend + Render API (same-origin)
-
-Netlify cannot run the SQLite-backed server itself: Functions are ephemeral and have no persistent filesystem. The working split is Netlify for the SPA and a small Edge Function that proxies `/api/*` to the Render service, so browser cookies stay first-party and no CORS is needed.
-
-1. Deploy the Render Blueprint first and note its URL, e.g. `https://strandpath.onrender.com`.
-2. In Netlify choose **Add new site → Import an existing project**, connect `Jardeleza0921/STRANDPATH`. [`netlify.toml`](netlify.toml) sets the build (`npm run build`) and publish directory (`dist`).
-3. Add the environment variable `API_ORIGIN=https://strandpath.onrender.com` (no trailing slash), then deploy.
-4. Set Render's `APP_BASE_URL` to the Netlify URL (e.g. `https://strandpath.netlify.app`) and redeploy the Render service so email links and Google redirects point at Netlify.
-5. In Google Cloud, register `https://<netlify-site>/api/auth/google/callback` as the redirect URI and set `GOOGLE_REDIRECT_URI` on Render to the same value.
-6. Verify `/api/health` through the Netlify domain, then sign in and run an assessment.
-
-The proxy is [`netlify/edge-functions/api.js`](netlify/edge-functions/api.js). It forwards methods, bodies, cookies and `Set-Cookie`, strips hop-by-hop headers, and returns 503 when `API_ORIGIN` is missing. Authentication, RBAC, rate limits and CSRF checks stay on the Node API; the Netlify site cannot bypass them. `APP_BASE_URL` must be the primary Netlify URL (not a deploy-preview URL) for email and OAuth.
-
-### Railway
-
-Create a project from the GitHub repo; [`railway.json`](railway.json) selects the Dockerfile and health check. Add a volume mounted at `/data`, then set the same environment variables. Railway provides `PORT`, which the server reads.
-
-### VPS with a reverse proxy
-
-```bash
-git clone https://github.com/Jardeleza0921/STRANDPATH.git /srv/strandpath
-cd /srv/strandpath && cp .env.example .env
-# edit .env: NODE_ENV=production, APP_BASE_URL, passwords, SMTP
-docker compose up -d --build
-```
-
-Put Caddy/nginx in front for TLS, preserving `Host` and `X-Forwarded-Proto`. Caddy example:
-
-```
-strandpath.example.edu.ph {
-  reverse_proxy 127.0.0.1:8787
-}
-```
-
-Without Docker, use the systemd unit below after `npm ci && npm run build`, with `DB_PATH` on persistent storage:
-
-```ini
-[Service]
-WorkingDirectory=/srv/strandpath
-EnvironmentFile=/srv/strandpath/.env
-ExecStart=/usr/bin/node server/index.js
-Restart=always
-User=strandpath
-```
-
-### Operational notes
-
-* Persist and back up the SQLite file and its `-wal` sidecar (`sqlite3 .backup` or stop the process first).
-* `npm run seed` runs at startup; it is idempotent and never resets existing passwords.
-* Set `APP_BASE_URL` to the final public origin before testing email or Google.
-* Freebuff/Cloudflare Sites also cannot run this build as-is (Node server + filesystem database); a Workers/D1 port would be a separate rewrite.
-
----
-
-## 12. Known limitations
-
-* Educational validation is incomplete (no pilot, reliability or expert panel); the instrument is labelled a technical draft.
-* Real SMTP delivery and Google OAuth are unverified without credentials. SMTP failures are reported, never simulated.
-* Google accounts without a password can sign in only with Google until they set a password via Forgot Password.
-* Email verification is encouraged and shown as a banner, but unverified students can still use the app (their access is not hard-blocked).
-* Rate limiting and the WebSocket-free session store are process-local; horizontal scaling needs a shared store. SQLite suits a single school/server; larger deployments should move to PostgreSQL.
-* No MFA, email-address change, self-service account recovery without email, outbound email notifications, automated retention job, or social login providers beyond Google.
-* AI is disabled until a server-side key is added, and AI output must be reviewed before use with minors.
-* The four themes were not visually inspected through a browser in this environment; verify on the target devices, including reduced-motion and small screens.
-* Retained `/mobile`, `/cover` and `/design-system` pages are visual prototypes, separate from the working application.
+- Static records are per browser and per device; there is no recovery if site data is cleared.
+- Local accounts are not verified identities and the static build has no staff or administrator area.
+- Email confirmation, password reset email, Google sign-in and centralized support need the optional backend.
+- The questionnaire is a technical draft; results are structured guidance, not a validated assessment.
+- The knowledge base is intentionally finite. It covers strands, common college programmes, careers and the documented questions; it does not know a specific school's offerings, deadlines, tuition or scholarships.
+- Pathway stage targets and evidence caps are transparent design choices, not validated psychometric cut-offs. Readiness is a planning aid, not a qualification.
+- The four colour themes each have a light and dark appearance, saved per browser. Theme colours follow the account only where the optional backend is used.
+- localStorage is small (a few megabytes). The app stores only text records; exporting before clearing data is recommended.
+- `/mobile`, `/cover` and `/design-system` remain visual prototype pages, separate from the working application.

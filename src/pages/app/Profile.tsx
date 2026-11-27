@@ -82,7 +82,7 @@ export function Profile() {
       <PageHeader
         eyebrow="Account"
         title="Your profile"
-        description="Profile details personalise how the coach explains your results and help your guidance office support you. Only fill in what you are comfortable sharing."
+        description="These details personalise how Strand Assistance explains your results and shape the activities suggested for you. Only fill in what you are comfortable sharing."
         actions={
           <Button variant="secondary" size="sm" onClick={exportData}>
             <DownloadIcon className="h-4 w-4" aria-hidden />

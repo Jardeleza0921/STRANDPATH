@@ -47,7 +47,8 @@ export function PostAssessment() {
       <PageHeader
         eyebrow="Follow-up"
         title="Your Follow-Up Assessment"
-        description="A follow-up attempt with the same questionnaire. It measures how your answers have changed; it cannot prove that any activity caused the change."
+        description="Answer the same questionnaire again to compare your current answers with your baseline and the skills your chosen strand needs. It describes change honestly; it cannot prove that an activity caused it."
+        actions={<Button to="/app/development" variant="secondary" size="sm">Readiness and roadmap</Button>}
       />
 
       {!pre ? (
@@ -110,8 +111,8 @@ export function PostAssessment() {
 
           {user?.role === 'student' && (
             <p className="mt-4 text-[12px] leading-relaxed text-faint">
-              Your guidance office can discuss changes with you. If something in your results is confusing, the Virtual
-              Coach can explain the scoring, and Support can help with technical problems.
+              Your guidance office can discuss changes with you. If something in your results is confusing, Strand
+              Assistance can explain the scoring, and Support can help with technical problems.
             </p>
           )}
         </>

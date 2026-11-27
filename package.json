@@ -13,6 +13,8 @@
     "start": "node server/index.js",
     "seed": "node server/seed.js",
     "test": "node --test server/tests/*.test.js",
+    "test:guidance": "node scripts/check-guidance.mjs",
+    "test:development": "node scripts/check-development.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "preview": "node server/index.js"

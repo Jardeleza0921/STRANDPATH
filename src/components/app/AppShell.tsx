@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3Icon,
   ClipboardListIcon,
   CompassIcon,
+  FlagIcon,
   HistoryIcon,
   HomeIcon,
   LayersIcon,
@@ -26,12 +27,13 @@ const nav = [
   { to: '/app', label: 'Home', icon: HomeIcon, end: true },
   { to: '/app/assessment', label: "Let's Get Started", icon: ClipboardListIcon },
   { to: '/app/results', label: 'Your Suggested Strands', icon: CompassIcon },
+  { to: '/app/development', label: 'My Development Journey', icon: FlagIcon },
+  { to: '/app/program', label: 'My Improvement Plan', icon: SparklesIcon },
   { to: '/app/strands', label: 'Explore Strands', icon: LayersIcon },
   { to: '/app/pathways', label: 'Explore Your Future', icon: RouteIcon },
-  { to: '/app/program', label: 'My Improvement Plan', icon: SparklesIcon },
   { to: '/app/progress', label: 'Track My Progress', icon: BarChart3Icon },
   { to: '/app/history', label: 'My Previous Assessments', icon: HistoryIcon },
-  { to: '/app/coach', label: 'Ask the Virtual Coach', icon: MessageCircleIcon },
+  { to: '/app/assistance', label: 'Strand Assistance', icon: MessageCircleIcon },
   { to: '/app/support', label: 'Get Help', icon: LifeBuoyIcon }
 ];
 
@@ -45,15 +47,39 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
     setOpen(false);
   }, [pathname]);
 
+  // While the drawer is open: lock page scroll, close on Escape, and move focus
+  // into the drawer. Focus returns to the single menu button on close.
+  useEffect(() => {
+    if (!open) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    panelRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  const close = () => setOpen(false);
+
   const sidebar = (
     <div className="flex h-full flex-col">
-      <Link to="/app" className="px-2" aria-label="StrandPath dashboard">
+      <Link to="/app" className="px-2" aria-label="StrandPath dashboard" onClick={close}>
         <Logo size={26} inverted />
       </Link>
       <div className="mt-4 px-2">
@@ -65,6 +91,7 @@ export function AppShell() {
             key={to}
             to={to}
             end={end}
+            onClick={close}
             className={({ isActive }) =>
               [
                 'flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition-all duration-150',
@@ -84,6 +111,7 @@ export function AppShell() {
           <NavLink
             key={to}
             to={to}
+            onClick={close}
             className={({ isActive }) =>
               [
                 'flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition-all duration-150',
@@ -100,6 +128,7 @@ export function AppShell() {
         {(user?.role === 'admin' || user?.role === 'guidance') && (
           <Link
             to="/admin"
+            onClick={close}
             className="flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-panel-ink hover:bg-white/5"
           >
             <BarChart3Icon className="h-[17px] w-[17px]" aria-hidden />
@@ -109,6 +138,7 @@ export function AppShell() {
         <button
           type="button"
           onClick={async () => {
+            close();
             await logout();
             navigate('/login');
           }}
@@ -136,39 +166,50 @@ export function AppShell() {
         {sidebar}
       </aside>
 
+      {/* One overlay and one panel, rendered once. The header stays above both so
+          its single button can always close the drawer again. */}
       {open && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div
+          id="mobile-nav"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Main navigation"
+          className="fixed inset-0 z-40 lg:hidden"
+        >
           <button
             type="button"
             aria-label="Close navigation"
-            className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
+            tabIndex={-1}
+            className="absolute inset-0 h-full w-full cursor-default bg-ink/60 backdrop-blur-sm"
+            onClick={close}
           />
-          <div className="sp-panel absolute left-0 top-0 h-full w-[280px] rounded-none p-4">{sidebar}</div>
+          <div
+            ref={panelRef}
+            tabIndex={-1}
+            className="sp-panel absolute inset-y-0 left-0 w-[280px] max-w-[85vw] overflow-y-auto rounded-none p-4 outline-none"
+          >
+            {sidebar}
+          </div>
         </div>
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sp-panel sticky top-0 z-30 flex h-14 items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 lg:hidden">
+        <header className="sp-panel sticky top-0 z-50 flex h-14 items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-3 sm:px-4 lg:hidden">
           <button
+            ref={triggerRef}
             type="button"
-            onClick={() => setOpen(true)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-white/10 text-panel-ink"
-            aria-label="Open navigation"
-          >
-            <MenuIcon className="h-4 w-4" aria-hidden />
-          </button>
-          <Link to="/app" aria-label="StrandPath dashboard">
-            <Logo size={24} inverted />
-          </Link>
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/15 bg-white/10 text-panel-muted"
-            aria-label="Toggle navigation"
+            onClick={() => setOpen((current) => !current)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? 'Close navigation' : 'Open navigation'}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/15 bg-white/10 text-panel-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           >
             {open ? <XIcon className="h-4 w-4" aria-hidden /> : <MenuIcon className="h-4 w-4" aria-hidden />}
           </button>
+          <Link to="/app" aria-label="StrandPath dashboard" onClick={close} className="min-w-0">
+            <Logo size={24} inverted />
+          </Link>
+          <span aria-hidden className="h-9 w-9 shrink-0" />
         </header>
 
         {user && !user.emailVerified && (

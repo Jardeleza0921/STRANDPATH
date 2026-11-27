@@ -116,6 +116,155 @@
   --panel-muted: 185 174 208;
 }
 
+/* --------------------------------------------------------------- dark mode */
+/* Dark surfaces are intentionally deep, not pure black, and each theme keeps
+   its own hue. Cards sit above the canvas; panels sit below it. Accent text
+   uses --brand-dark so it stays readable on dark surfaces. */
+
+[data-mode='dark'][data-theme='green'] {
+  --canvas: 16 22 17;
+  --surface: 24 32 25;
+  --surface2: 33 43 34;
+  --ink: 233 241 234;
+  --muted: 176 193 179;
+  --faint: 138 156 141;
+  --line: 55 70 58;
+  --brand: 45 138 96;
+  --brand-dark: 130 228 172;
+  --brand-soft: 27 49 37;
+  --brand-edge: 54 94 65;
+  --accent: 214 160 82;
+  --accent-soft: 53 40 21;
+  --success: 82 200 148;
+  --success-soft: 24 50 38;
+  --warn: 226 184 88;
+  --warn-soft: 54 43 18;
+  --danger: 235 126 118;
+  --danger-soft: 56 30 30;
+  --panel: 10 15 11;
+  --panel2: 18 27 20;
+  --panel-ink: 236 245 238;
+  --panel-muted: 160 184 168;
+}
+
+[data-mode='dark'][data-theme='blue'] {
+  --canvas: 13 17 24;
+  --surface: 20 26 36;
+  --surface2: 28 36 50;
+  --ink: 232 239 248;
+  --muted: 170 186 206;
+  --faint: 132 148 170;
+  --line: 50 62 80;
+  --brand: 45 105 186;
+  --brand-dark: 138 190 252;
+  --brand-soft: 24 40 62;
+  --brand-edge: 45 70 104;
+  --accent: 216 162 84;
+  --accent-soft: 52 40 20;
+  --success: 78 198 150;
+  --success-soft: 22 48 38;
+  --warn: 226 186 92;
+  --warn-soft: 52 43 20;
+  --danger: 236 128 120;
+  --danger-soft: 54 30 31;
+  --panel: 9 13 20;
+  --panel2: 17 24 36;
+  --panel-ink: 237 244 253;
+  --panel-muted: 158 180 208;
+}
+
+[data-mode='dark'][data-theme='red'] {
+  --canvas: 25 17 16;
+  --surface: 33 23 22;
+  --surface2: 43 31 29;
+  --ink: 247 236 232;
+  --muted: 203 178 172;
+  --faint: 160 136 130;
+  --line: 68 50 47;
+  --brand: 154 62 52;
+  --brand-dark: 248 172 158;
+  --brand-soft: 52 30 28;
+  --brand-edge: 88 50 45;
+  --accent: 216 162 88;
+  --accent-soft: 52 39 21;
+  --success: 78 194 146;
+  --success-soft: 22 47 37;
+  --warn: 224 182 92;
+  --warn-soft: 52 42 20;
+  --danger: 240 132 124;
+  --danger-soft: 56 29 29;
+  --panel: 18 11 10;
+  --panel2: 29 18 17;
+  --panel-ink: 251 240 236;
+  --panel-muted: 206 176 168;
+}
+
+[data-mode='dark'][data-theme='violet'] {
+  --canvas: 19 16 26;
+  --surface: 27 23 36;
+  --surface2: 36 31 48;
+  --ink: 241 236 250;
+  --muted: 196 186 216;
+  --faint: 154 144 176;
+  --line: 58 50 76;
+  --brand: 103 77 167;
+  --brand-dark: 192 172 250;
+  --brand-soft: 37 30 56;
+  --brand-edge: 68 55 100;
+  --accent: 214 160 90;
+  --accent-soft: 52 40 22;
+  --success: 80 196 150;
+  --success-soft: 23 48 38;
+  --warn: 226 184 94;
+  --warn-soft: 53 43 20;
+  --danger: 238 130 122;
+  --danger-soft: 56 30 31;
+  --panel: 12 10 19;
+  --panel2: 22 18 33;
+  --panel-ink: 243 239 252;
+  --panel-muted: 184 172 208;
+}
+
+[data-mode='dark'] body {
+  background-image:
+    radial-gradient(1100px 520px at 8% -8%, rgb(var(--brand) / 0.16), transparent 62%),
+    radial-gradient(900px 460px at 100% 0%, rgb(var(--brand-soft) / 0.7), transparent 58%);
+}
+
+[data-mode='dark'] .sp-card {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.05) inset,
+    0 2px 6px rgb(0 0 0 / 0.35),
+    0 18px 36px -28px rgb(0 0 0 / 0.85);
+}
+
+/* --brand is the button fill; --brand-dark is the readable accent for text
+   and links on dark surfaces. */
+[data-mode='dark'] .text-brand,
+[data-mode='dark'] .hover\:text-brand:hover {
+  color: rgb(var(--brand-dark));
+}
+
+[data-mode='dark'] .sp-btn-primary {
+  background-image: linear-gradient(180deg, rgb(var(--brand)) 0%, rgb(var(--brand) / 0.78) 100%);
+  border-color: rgb(var(--brand) / 0.85);
+  color: #fff;
+}
+
+[data-mode='dark'] .sp-btn-secondary {
+  background-image: linear-gradient(180deg, rgb(var(--surface2) / 0.9) 0%, rgb(var(--surface)) 100%);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 2px 4px rgb(0 0 0 / 0.3);
+}
+
+[data-mode='dark'] .sp-input {
+  background-image: linear-gradient(180deg, rgb(var(--surface2) / 0.75) 0%, rgb(var(--surface)) 85%);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.45), 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+[data-mode='dark'] .sp-pill {
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.05) inset;
+}
+
 /* -------------------------------------------------------------------- base */
 
 html,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowRightIcon, CheckIcon, ChevronLeftIcon } from 'lucide-react';
 import { api, errorMessage } from '../../lib/api';
+import { isStaticMode } from '../../lib/mode';
 import { Assessment as AssessmentType, Question } from '../../types/api';
 import { Button } from '../../components/ui/Button';
 import { Progress } from '../../components/ui/Progress';
@@ -136,8 +137,9 @@ export function AssessmentReview() {
         </Button>
       </div>
       <p className="mt-4 text-[12px] leading-relaxed text-faint">
-        Submitting sends your answers to the server, where the deterministic scoring engine calculates dimension scores
-        and strand alignment. AI is not used to compute or change scores.
+        {isStaticMode()
+          ? 'Submitting runs the deterministic scoring engine in this browser and saves the result here. No AI is used to compute or change scores.'
+          : 'Submitting sends your answers to the server, where the deterministic scoring engine calculates dimension scores and strand alignment. AI is not used to compute or change scores.'}
       </p>
     </div>
   );

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { AuthFrame } from '../../components/auth/AuthFrame';
 import { PasswordInput, PasswordStrength } from '../../components/auth/PasswordInput';
 import { api, errorMessage } from '../../lib/api';
+import { isStaticMode } from '../../lib/mode';
 
 export function ResetPassword() {
   const [params] = useSearchParams();
@@ -60,6 +61,27 @@ export function ResetPassword() {
           <Button onClick={() => navigate('/login?reset=1', { replace: true })} size="lg">
             Sign in with the new password
           </Button>
+        </div>
+      </AuthFrame>
+    );
+  }
+
+  if (isStaticMode()) {
+    return (
+      <AuthFrame
+        eyebrow="Password recovery"
+        title="Password reset needs the optional email backend."
+        description="This static build cannot send or verify reset codes, so it will not pretend to."
+      >
+        <h2 className="font-display text-[24px] font-bold text-ink">Reset is not available here</h2>
+        <p className="mt-1 text-[13px] leading-relaxed text-muted">
+          If you still know your password, sign in and change it from Settings. If you have forgotten it, this local
+          account cannot be recovered from a server. You can create a new account, though records saved in this browser
+          under the old account will not move with it.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button to="/login" size="lg">Back to sign in</Button>
+          <Button to="/register" variant="secondary" size="lg">Create a new account</Button>
         </div>
       </AuthFrame>
     );

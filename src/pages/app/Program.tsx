@@ -63,12 +63,13 @@ export function Program() {
         description={
           program
             ? program.goal
-            : 'A programme is a short sequence of activities built from your results and your chosen strand. It targets the dimensions that scored lower, not everything at once.'
+            : 'Develop the skills your chosen strand needs through short lessons, practice activities and knowledge checks. The plan starts at your current level, not at the beginning of the list.'
         }
         actions={
-          program ? (
-            <Button to="/app/progress" variant="secondary" size="sm">Progress</Button>
-          ) : undefined
+          <>
+            <Button to="/app/development" variant="secondary" size="sm">Development journey</Button>
+            {program && <Button to="/app/progress" variant="secondary" size="sm">Progress</Button>}
+          </>
         }
       />
 
@@ -86,8 +87,8 @@ export function Program() {
                   </h2>
                   <p className="mt-1 text-[13px] leading-relaxed text-muted">
                     STRANDPATH will use your latest pre-assessment to choose up to three dimensions, then select
-                    activities that develop them in a sequence. You can repeat, skip or request alternatives at any
-                    point.
+                    activities that develop them in a sequence, starting at your current evidence. You can repeat,
+                    skip or request alternatives at any point.
                   </p>
                   <ul className="mt-3 space-y-1 text-[12.5px] text-muted">
                     <li>• Activities are drawn from your school's activity library, not generated randomly.</li>
@@ -180,7 +181,14 @@ export function Program() {
                         <h3 className="mt-1.5 text-[15.5px] font-semibold text-ink">{activity.title}</h3>
                         <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
                           <ClockIcon className="h-3.5 w-3.5" aria-hidden />
-                          {activity.minutes} min · {activity.tier} · {activity.type}
+                          {activity.minutes} min ·{' '}
+                          {activity.tier === 'foundation'
+                            ? 'Foundation'
+                            : activity.targetCategory === 'persistence'
+                              ? 'Building Competence'
+                              : 'Developing'}
+                          {' · '}
+                          {activity.type}
                         </p>
                         {activity.status === 'completed' && activity.checkScore !== null && (
                           <p className="mt-1.5 text-[12px] text-success">Knowledge check: {activity.checkScore}%</p>

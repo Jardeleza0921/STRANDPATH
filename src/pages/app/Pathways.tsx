@@ -111,7 +111,7 @@ export function Pathways() {
       <p className="mt-5 text-[12px] leading-relaxed text-muted">
         Confirm programme requirements, admission rules and costs with the specific school or college. STRANDPATH does
         not maintain official curriculum or admission data. See{' '}
-        <Link to="/app/coach" className="font-medium text-brand hover:text-brand-dark">the Virtual Coach</Link> or your
+        <Link to="/app/assistance" className="font-medium text-brand hover:text-brand-dark">Strand Assistance</Link> or your
         guidance office for help interpreting these options.
       </p>
     </div>
